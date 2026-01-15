@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  manager
+  admin
+}
+
+enum WorkItemStatus {
+  open
+  in_progress
+  blocked
+  done
+}
+
+enum WorkItemPriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum WorkItemType {
+  task
+  bug
+  incident
+  request
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(user)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  
+  // Relations
+  assignedWorkItems WorkItem[] @relation("AssignedTo")
+  createdWorkItems  WorkItem[] @relation("CreatedBy")
+  aiSummaries       AISummary[]
+  
+  @@map("users")
+}
+
+model Project {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  
+  // Relations
+  workItems   WorkItem[]
+  
+  @@map("projects")
+}
+
+model WorkItem {
+  id          String           @id @default(uuid())
+  title       String
+  description String?
+  type        WorkItemType     @default(task)
+  status      WorkItemStatus   @default(open)
+  priority    WorkItemPriority @default(medium)
+  assignedTo  String?          @map("assigned_to")
+  createdBy   String           @map("created_by")
+  projectId   String           @map("project_id")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  
+  // Relations
+  assignedUser User?  @relation("AssignedTo", fields: [assignedTo], references: [id])
+  creator      User   @relation("CreatedBy", fields: [createdBy], references: [id])
+  project      Project @relation(fields: [projectId], references: [id])
+  
+  @@map("work_items")
+}
+
+model AISummary {
+  id         String   @id @default(uuid())
+  content    String
+  createdFor String   @map("created_for")
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  manager    User     @relation(fields: [createdFor], references: [id])
+  
+  @@map("ai_summaries")
+}
