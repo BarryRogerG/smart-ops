@@ -1,0 +1,58 @@
+import api from '../utils/api';
+import { User } from '../types';
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+export const authService = {
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/login', credentials);
+    localStorage.setItem('token', response.data.token);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    return response.data;
+  },
+
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/register', data);
+    localStorage.setItem('token', response.data.token);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    return response.data;
+  },
+
+  async getCurrentUser(): Promise<User> {
+    const response = await api.get<{ user: User }>('/auth/me');
+    return response.data.user;
+  },
+
+  logout(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+
+  getStoredUser(): User | null {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  },
+
+  getToken(): string | null {
+    return localStorage.getItem('token');
+  },
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  },
+};
