@@ -1,14 +1,26 @@
 # SmartOps
 
-SmartOps helps **small-mid sized teams** manage operational work in one place.
+SmartOps is a full-stack work management application designed for **small-mid sized teams** to manage operational work in one place. It answers key operational questions: What work exists? Who owns it? What's urgent? What's blocked? What needs management attention?
+
+This is a **real internal tool**, not a demo app. Built with modern web technologies and best practices for production use.
+
+## Purpose
+
+SmartOps helps teams:
+- **Track work items** - Tasks, bugs, incidents, and requests in one system
+- **Assign ownership** - Know who's responsible for each item
+- **Prioritize effectively** - Identify urgent and high-priority issues
+- **Identify blockers** - Quickly see what's stuck and needs attention
+- **Get insights** - Dashboard views for managers and team-wide overviews
 
 ## Features
 
-- **Authentication**: Email + password login with JWT-based sessions and role-based access
-- **Work Item Management**: Create, edit, assign, and track work items (tasks, bugs, incidents, requests)
-- **Dashboard**: View open items, high-priority issues, blocked items, and items per user
-- **AI Assistance** (Optional): Generate summaries for managers using OpenAI API
-- **User Management**: Admin can manage users, roles, and permissions
+- **🔐 Authentication**: Email + password login with JWT-based sessions and role-based access control
+- **📋 Work Item Management**: Create, edit, assign, and track work items (tasks, bugs, incidents, requests)
+- **📊 Dashboard**: View open items, high-priority issues, blocked items, and items per user
+- **🤖 AI Assistance** (Optional): Generate AI-powered summaries for managers using OpenAI API
+- **👥 User Management**: Admin can manage users, roles, and permissions
+- **🎯 Role-Based Access**: Different views and permissions for Users, Managers, and Admins
 
 ## Tech Stack
 
@@ -130,6 +142,31 @@ The frontend will run on `http://localhost:5173`
 - Regular users can only see and update their assigned work items.
 - Managers and admins can see all work items and manage priorities/assignments.
 - Only admins can delete work items and manage users.
+
+## Project Structure
+
+```
+smartops/
+├── backend/          # Express API server
+│   ├── prisma/       # Database schema and migrations
+│   ├── src/
+│   │   ├── routes/   # API route handlers
+│   │   ├── middlewares/  # Auth and authorization
+│   │   └── utils/    # Helper functions
+│   └── .env          # Environment variables (not committed)
+├── frontend/          # React + TypeScript application
+│   ├── src/
+│   │   ├── components/  # Reusable UI components
+│   │   ├── pages/       # Page components
+│   │   ├── services/    # API service functions
+│   │   └── contexts/    # React contexts (Auth)
+│   └── .env          # Frontend environment variables
+└── README.md         # This file
+```
+
+## Contributing
+
+This is an internal tool. For questions or issues, please contact the development team.
 
 ## License
 
