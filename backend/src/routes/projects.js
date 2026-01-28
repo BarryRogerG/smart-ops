@@ -108,4 +108,18 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
+// Delete project
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    await prisma.project.delete({
+      where: { id: req.params.id },
+    });
+
+    res.json({ message: 'Project deleted successfully' });
+  } catch (error) {
+    console.error('Delete project error:', error);
+    res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+
 module.exports = router;

@@ -15,6 +15,15 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Log request details for debugging
+  console.log('API Request:', {
+    method: config.method?.toUpperCase(),
+    url: config.url,
+    baseURL: config.baseURL,
+    fullURL: `${config.baseURL}${config.url}`,
+    data: config.data,
+    headers: config.headers,
+  });
   return config;
 });
 
@@ -22,10 +31,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only redirect on 401 if we're NOT on the login page and it's NOT a login request
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      const isOnLoginPage = window.location.pathname === '/login';
+      
+      // Don't redirect if it's a login request or we're already on login page
+      if (!isLoginRequest && !isOnLoginPage) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

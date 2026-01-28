@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
@@ -7,6 +8,7 @@ import { WorkItems } from './pages/WorkItems';
 import { WorkItemDetail } from './pages/WorkItemDetail';
 import { CreateWorkItem } from './pages/CreateWorkItem';
 import { Users } from './pages/Users';
+import { Projects } from './pages/Projects';
 
 function AppRoutes() {
   const { user, isLoading } = useAuth();
@@ -17,7 +19,16 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route 
+        path="/login" 
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Login key="login" />
+          )
+        } 
+      />
       <Route
         path="/dashboard"
         element={
@@ -51,6 +62,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/projects"
+        element={
+          <ProtectedRoute>
+            <Projects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/users"
         element={
           <ProtectedRoute requiredRole={['admin']}>
@@ -68,6 +87,7 @@ function App() {
     <Router>
       <AuthProvider>
         <AppRoutes />
+        <Toaster position="top-right" />
       </AuthProvider>
     </Router>
   );

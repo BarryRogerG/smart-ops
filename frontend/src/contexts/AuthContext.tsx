@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
-import { authService } from '../services/auth';
+import { authService, AuthResponse } from '../services/auth';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthResponse>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -30,8 +30,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await authService.login({ email, password });
-    setUser(response.user);
+    console.log('AuthContext.login called with:', { email });
+    try {
+      console.log('Calling authService.login...');
+      const response = await authService.login({ email, password });
+      console.log('authService.login succeeded:', response);
+      // ✅ Only mutate auth state on SUCCESS
+      setUser(response.user);
+      return response;
+    } catch (err) {
+      console.error('AuthContext.login error:', err);
+      // ❌ Do NOT touch auth state here
+      // ❌ Do NOT logout
+      // ❌ Do NOT clear storage
+      throw err;
+    }
   };
 
   const register = async (name: string, email: string, password: string) => {

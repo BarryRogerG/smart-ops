@@ -10,3 +10,25 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-block-width: revert-layer;
+  margin: 20px;
+}
