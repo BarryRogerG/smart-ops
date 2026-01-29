@@ -6,7 +6,7 @@ databases:
 services:
   - type: web
     name: smartops-backend
-    runtime: node           # <--- Node for the backend server
+    runtime: node
     rootDir: backend
     buildCommand: npm install && npx prisma generate
     startCommand: npm start
@@ -22,10 +22,10 @@ services:
 
   - type: web
     name: smartops-frontend
-    runtime: static         # <--- Static for the React/Vite frontend
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishPath: dist       # This is now valid because runtime is static
+    publishDir: dist        # <--- This is the correct field name for the Blueprint Spec
     envVars:
       - key: VITE_API_URL
         fromService:
