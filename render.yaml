@@ -1,11 +1,10 @@
-services:
-  # PostgreSQL Database
-  - type: pg
-    name: smartops-database
-    plan: free
+databases:
+  - name: smartops-database
+    plan: starter
     databaseName: smartops
     user: smartops_user
 
+services:
   # Backend Web Service
   - type: web
     name: smartops-backend
@@ -30,8 +29,9 @@ services:
   - type: web
     name: smartops-frontend
     runtime: static
+    plan: free
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
+    publishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
         fromService:
