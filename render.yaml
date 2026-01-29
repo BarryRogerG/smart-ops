@@ -20,12 +20,11 @@ services:
       - key: OPENAI_API_KEY
         sync: false 
 
-  - type: web
+  - type: static          # <--- CHANGED: Was 'web', now 'static'
     name: smartops-frontend
-    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishDir: dist        # <--- This is the correct field name for the Blueprint Spec
+    publishDir: dist      # <--- Now valid because type is 'static'
     envVars:
       - key: VITE_API_URL
         fromService:
