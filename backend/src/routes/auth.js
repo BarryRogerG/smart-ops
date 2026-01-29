@@ -28,8 +28,17 @@ router.post('/register', async (req, res) => {
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Create user (only admin can set role, default is 'user')
-    const userRole = role && ['admin', 'manager', 'user'].includes(role) ? role : 'user';
+    // First User is Admin rule: Check if any users exist
+    const userCount = await prisma.user.count();
+    
+    // Determine user role:
+    // - If no users exist, the first user becomes 'admin'
+    // - Otherwise, default to 'user' (ignore role from request for security)
+    let userRole = 'user';
+    if (userCount === 0) {
+      userRole = 'admin';
+      console.log('First user registration - assigning admin role');
+    }
 
     const user = await prisma.user.create({
       data: {

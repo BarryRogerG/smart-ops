@@ -65,6 +65,8 @@ export function Dashboard() {
     );
   }
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Layout>
       <div className="px-4 py-6 sm:px-0">
@@ -82,6 +84,31 @@ export function Dashboard() {
             </Button>
           )}
         </div>
+
+        {/* Admin-only Manage Team Section */}
+        {isAdmin && (
+          <div className="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-indigo-900 mb-2">
+                  Manage Team
+                </h2>
+                <p className="text-indigo-700 text-sm mb-4">
+                  As an administrator, you can manage users, assign roles, and oversee all team activities.
+                </p>
+                <Link
+                  to="/users"
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
+                >
+                  Go to User Management →
+                </Link>
+              </div>
+              <div className="hidden md:block">
+                <div className="text-6xl text-indigo-200">👥</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* AI Summary Card */}
