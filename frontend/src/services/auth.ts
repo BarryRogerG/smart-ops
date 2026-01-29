@@ -62,8 +62,18 @@ export const authService = {
   },
 
   getStoredUser(): User | null {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr || userStr.trim() === '') {
+        return null;
+      }
+      return JSON.parse(userStr);
+    } catch (error) {
+      console.error('Error parsing stored user:', error);
+      // Clear invalid data
+      localStorage.removeItem('user');
+      return null;
+    }
   },
 
   getToken(): string | null {
