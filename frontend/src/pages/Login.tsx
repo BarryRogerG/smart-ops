@@ -5,7 +5,7 @@
 
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Login() {
@@ -157,6 +157,20 @@ export function Login() {
             {isLoading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+
+        <div className="text-center space-y-2">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-indigo-600 hover:text-indigo-800 font-medium">
+              Sign Up
+            </Link>
+          </p>
+          <p className="text-sm">
+            <Link to="/forgot-password" className="text-indigo-600 hover:text-indigo-800 font-medium">
+              Forgot Password?
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

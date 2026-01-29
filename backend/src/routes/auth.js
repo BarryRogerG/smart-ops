@@ -124,4 +124,54 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
+// Forgot Password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    // For security, always return success even if user doesn't exist
+    // This prevents email enumeration attacks
+    if (!user) {
+      return res.json({ 
+        message: 'If an account with that email exists, a password reset link has been sent.' 
+      });
+    }
+
+    // In a production app, you would:
+    // 1. Generate a secure reset token
+    // 2. Store it in the database with an expiration time
+    // 3. Send an email with a reset link
+    // For now, we'll just return a success message
+    
+    // TODO: Implement email sending service here
+    // Example: await sendPasswordResetEmail(user.email, resetToken);
+
+    res.json({ 
+      message: 'If an account with that email exists, a password reset link has been sent.',
+      // In development, you might want to return the reset token for testing
+      // Remove this in production!
+      ...(process.env.NODE_ENV === 'development' && {
+        note: 'Password reset email functionality not yet implemented. This is a placeholder endpoint.'
+      })
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+});
+
 module.exports = router;

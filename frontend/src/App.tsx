@@ -3,6 +3,8 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { Dashboard } from './pages/Dashboard';
 import { WorkItems } from './pages/WorkItems';
 import { WorkItemDetail } from './pages/WorkItemDetail';
@@ -26,6 +28,26 @@ function AppRoutes() {
             <Navigate to="/dashboard" replace />
           ) : (
             <Login key="login" />
+          )
+        } 
+      />
+      <Route 
+        path="/signup" 
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Signup />
+          )
+        } 
+      />
+      <Route 
+        path="/forgot-password" 
+        element={
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <ForgotPassword />
           )
         } 
       />
