@@ -1,13 +1,13 @@
 databases:
   - name: smartops-db
     databaseName: smartops
-    plan: free
+    plan: free           # Ensures the database is on the free tier
 
 services:
   - type: web
     name: smartops-backend
     runtime: node
-    plan: free
+    plan: free           # Ensures the backend service is on the free tier
     rootDir: backend
     buildCommand: npm install && npx prisma generate
     startCommand: npm start
@@ -21,12 +21,12 @@ services:
       - key: OPENAI_API_KEY
         sync: false 
 
-  - type: web              # Leave this as 'web'
+  - type: web
     name: smartops-frontend
-    runtime: static        # This is the magic line that tells Render it's a static site
+    runtime: static      # Classifies this as a static site
     rootDir: frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: dist # <--- THIS IS THE KEY: staticPublishPath (case sensitive)
+    staticPublishPath: dist # The specific key for static sites in a Blueprint
     envVars:
       - key: VITE_API_URL
         fromService:
