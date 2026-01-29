@@ -4,7 +4,7 @@ databases:
     plan: free
 
 services:
-  - type: web
+  - type: static
     name: smartops-backend
     runtime: node
     rootDir: backend
@@ -22,7 +22,7 @@ services:
 
   - type: web
     name: smartops-frontend
-    runtime: static
+   
     rootDir: frontend
     buildCommand: npm install && npm run build
     publishPath: dist # Explicitly use 'dist' for Vite
@@ -31,4 +31,4 @@ services:
         fromService:
           type: web
           name: smartops-backend
-          property: host
+          property: host 
