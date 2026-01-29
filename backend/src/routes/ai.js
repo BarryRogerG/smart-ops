@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate, authorize } = require('../middlewares/auth');
+const OpenAI = require('openai');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -8,14 +9,6 @@ const prisma = new PrismaClient();
 // Generate AI summary for manager
 router.post('/summary', authenticate, authorize('manager', 'admin'), async (req, res) => {
   try {
-    // Check if OpenAI is configured
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(503).json({ 
-        error: 'AI service not configured',
-        message: 'OpenAI API key is not set. AI features are optional.' 
-      });
-    }
-
     // Get all open work items for summary
     const workItems = await prisma.workItem.findMany({
       where: {
@@ -41,9 +34,94 @@ router.post('/summary', authenticate, authorize('manager', 'admin'), async (req,
       },
     });
 
+    // Map the workItems array into a simple string
+    const itemsList = workItems.map(item => `- ${item.title} (${item.priority} priority)`).join('\n');
+
+    // Initialize OpenAI properly
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    // Wrap the OpenAI call in a secondary try/catch specifically for the AI response
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a project management assistant. Provide a concise 2-sentence summary of the work items.',
+          },
+          {
+            role: 'user',
+            content: `Summarize these work items in 2 concise sentences:\n${itemsList}`,
+          },
+        ],
+        max_tokens: 150,
+      });
+
+      // Return successful response with the AI's summary
+      res.json({ summary: completion.choices[0].message.content });
+    } catch (aiError) {
+      // Check if the error is due to insufficient quota
+      if (aiError.code === 'insufficient_quota' || aiError.status === 429) {
+        // Log a warning to the terminal
+        console.warn('OpenAI API quota exceeded. Using Preview Mode fallback.');
+        console.warn('Error details:', {
+          message: aiError.message,
+          status: aiError.status,
+          code: aiError.code,
+        });
+        
+        // Return a successful response with a mock summary
+        return res.json({ 
+          summary: 'System Note: AI is in Preview Mode. You have ' + workItems.length + ' active items. The team is currently prioritized on: ' + (workItems[0]?.title || 'general tasks') + '.' 
+        });
+      }
+      
+      // Log other errors to the console
+      console.error('OpenAI API call failed:', aiError);
+      console.error('Error details:', {
+        message: aiError.message,
+        status: aiError.status,
+        code: aiError.code,
+        type: aiError.type,
+      });
+      
+      // Return error for other types of failures
+      res.status(500).json({ 
+        error: 'Failed to generate AI summary', 
+        message: aiError.message || 'OpenAI API call failed' 
+      });
+    }
+  } catch (error) {
+    console.error('AI summary route error:', error);
+    res.status(500).json({ error: 'Failed to generate AI summary', message: error.message });
+  }
+});
+
+// Generate AI summary from provided work items
+router.post('/summarize', authenticate, authorize('manager', 'admin'), async (req, res) => {
+  try {
+    // Check if OpenAI is configured
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({ 
+        error: 'AI service not configured',
+        message: 'OpenAI API key is not set. AI features are optional.' 
+      });
+    }
+
+    const { workItems } = req.body;
+
+    if (!workItems || !Array.isArray(workItems) || workItems.length === 0) {
+      return res.status(400).json({ 
+        error: 'Invalid request',
+        message: 'workItems array is required and must not be empty' 
+      });
+    }
+
     // Format work items for AI
     const itemsText = workItems.map((item) => {
-      return `- ${item.title} (${item.type}): ${item.status}, Priority: ${item.priority}, Assigned to: ${item.assignedUser?.name || 'Unassigned'}, Project: ${item.project.name}`;
+      const assignedTo = item.assignedUser?.name || item.assignedTo || 'Unassigned';
+      const project = item.project?.name || item.projectId || 'Unknown';
+      return `- ${item.title} (${item.type}): ${item.status}, Priority: ${item.priority}, Assigned to: ${assignedTo}, Project: ${project}`;
     }).join('\n');
 
     // Call OpenAI API
@@ -61,45 +139,47 @@ router.post('/summary', authenticate, authorize('manager', 'admin'), async (req,
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `You are a project management assistant. Summarize the following work items for a manager. Focus on:
-1. High-priority items that need attention
-2. Blocked items
-3. Items that are overdue or at risk
-4. Overall team workload
+    const prompt = `Summarize these work items in 2-3 professional sentences. Highlight any 'High' priority items or potential blockers.
 
 Work Items:
-${itemsText}
-
-Provide a concise, actionable summary (2-3 paragraphs).`;
+${itemsText}`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful project management assistant that provides clear, actionable summaries.',
+          content: 'You are a helpful project management assistant that provides clear, concise summaries.',
         },
         {
           role: 'user',
           content: prompt,
         },
       ],
-      max_tokens: 500,
+      max_tokens: 300,
     });
 
     const summaryContent = completion.choices[0].message.content;
 
-    // Save summary to database
-    const summary = await prisma.aISummary.create({
-      data: {
-        content: summaryContent,
-        createdFor: req.user.id,
-      },
-    });
-
-    res.json({ summary });
+    res.json({ summary: summaryContent });
   } catch (error) {
-    console.error('AI summary error:', error);
+    // Check if the error is due to insufficient quota
+    if (error.code === 'insufficient_quota' || error.status === 429) {
+      // Log a warning to the terminal
+      console.warn('OpenAI API quota exceeded. Using Preview Mode fallback.');
+      console.warn('Error details:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+      });
+      
+      // Return a successful response with a mock summary
+      return res.json({ 
+        summary: 'System Note: AI is in Preview Mode. You have ' + workItems.length + ' active items. The team is currently prioritized on: ' + (workItems[0]?.title || 'general tasks') + '.' 
+      });
+    }
+    
+    console.error('AI summarize error:', error);
     
     // If OpenAI API fails, return a basic summary
     if (error.message?.includes('API key') || error.message?.includes('OpenAI')) {

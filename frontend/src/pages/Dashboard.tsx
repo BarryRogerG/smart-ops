@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardService } from '../services/dashboard';
 import { aiService } from '../services/ai';
-import { DashboardData, AISummary } from '../types';
+import { DashboardData } from '../types';
 import { Layout } from '../components/Layout';
+import { Button } from '../components/Button';
+import { toast } from 'react-hot-toast';
 
 export function Dashboard() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
-  const [aiSummary, setAiSummary] = useState<AISummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -28,21 +31,21 @@ export function Dashboard() {
     }
   };
 
-  const handleGenerateSummary = async () => {
+  const handleGenerate = async () => {
     if (user?.role !== 'manager' && user?.role !== 'admin') return;
 
-    setIsGeneratingSummary(true);
+    setIsGenerating(true);
     try {
-      const summary = await aiService.generateSummary();
-      setAiSummary(summary);
+      const generatedSummary = await aiService.generateSummaryFromBackend();
+      setSummary(generatedSummary);
     } catch (error: any) {
       if (error.response?.status === 503) {
-        alert('AI service is not configured. The app works without AI.');
+        toast.error('AI service is not configured. The app works without AI.');
       } else {
-        alert('Failed to generate summary');
+        toast.error(error.response?.data?.error || 'Failed to generate summary');
       }
     } finally {
-      setIsGeneratingSummary(false);
+      setIsGenerating(false);
     }
   };
 
@@ -70,27 +73,39 @@ export function Dashboard() {
             {user?.role === 'user' ? 'My Work' : 'Team Overview'}
           </h1>
           {(user?.role === 'manager' || user?.role === 'admin') && (
-            <button
-              onClick={handleGenerateSummary}
-              disabled={isGeneratingSummary}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+            <Button
+              onClick={handleGenerate}
+              isLoading={isGenerating}
+              variant="primary"
             >
-              {isGeneratingSummary ? 'Generating...' : 'Generate AI Summary'}
-            </button>
+              Generate AI Summary
+            </Button>
           )}
         </div>
 
-        {aiSummary && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h2 className="text-lg font-semibold text-blue-900 mb-2">AI Summary</h2>
-            <p className="text-blue-800 whitespace-pre-line">{aiSummary.content}</p>
-            <p className="text-sm text-blue-600 mt-2">
-              Generated: {new Date(aiSummary.createdAt).toLocaleString()}
-            </p>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* AI Summary Card */}
+          {summary && (
+            <div className="lg:col-span-2 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-6 shadow-sm relative">
+              {/* Mock Mode Badge */}
+              {summary.includes('Preview Mode') || summary.includes('System Note') ? (
+                <div className="absolute top-4 right-4">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-300">
+                    Mock Mode
+                  </span>
+                </div>
+              ) : null}
+              
+              <div>
+                <h3 className="text-lg font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-indigo-600" />
+                  AI Summary
+                </h3>
+                <p className="text-indigo-800 leading-relaxed italic">{summary}</p>
+              </div>
+            </div>
+          )}
+
           {/* Open Items */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Open Work Items</h2>
