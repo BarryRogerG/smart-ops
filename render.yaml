@@ -1,37 +1,31 @@
 databases:
-  - name: smartops-database
-    plan: starter
+  - name: smartops-db
     databaseName: smartops
-    user: smartops_user
+    plan: free
 
 services:
-  # Backend Web Service
   - type: web
     name: smartops-backend
     runtime: node
-    plan: free
-    buildCommand: cd backend && npm install && npx prisma generate
-    preDeployCommand: cd backend && npx prisma migrate deploy
-    startCommand: cd backend && npm start
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm start
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: smartops-database
+          name: smartops-db
           property: connectionString
       - key: JWT_SECRET
-        generateValue: true
-      - key: PORT
-        value: 3001
+        generateValue: true # This creates a random secret for you automatically
+      - key: OPENAI_API_KEY
+        sync: false # You will add your key manually in the dashboard
 
-  # Frontend Static Site
   - type: web
     name: smartops-frontend
     runtime: static
-    plan: free
-    buildCommand: cd frontend && npm install && npm run build
-    publishPath: frontend/dist
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishPath: dist # Vite builds into 'dist' by default
     envVars:
       - key: VITE_API_URL
         fromService:
