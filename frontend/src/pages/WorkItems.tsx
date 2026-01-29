@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+
 import { workItemsService } from '../services/workItems';
 import { projectsService } from '../services/projects';
-import { WorkItem, Project, WorkItemStatus, WorkItemPriority, WorkItemType } from '../types';
+import { WorkItem, Project, WorkItemStatus, WorkItemPriority } from '../types';
 import { Layout } from '../components/Layout';
 
 export function WorkItems() {
-  const { user } = useAuth();
+  
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);

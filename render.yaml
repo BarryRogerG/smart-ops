@@ -16,16 +16,16 @@ services:
           name: smartops-db
           property: connectionString
       - key: JWT_SECRET
-        generateValue: true # This creates a random secret for you automatically
+        generateValue: true 
       - key: OPENAI_API_KEY
-        sync: false # You will add your key manually in the dashboard
+        sync: false 
 
   - type: web
     name: smartops-frontend
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishPath: dist # Vite builds into 'dist' by default
+    publishPath: dist # Explicitly use 'dist' for Vite
     envVars:
       - key: VITE_API_URL
         fromService:
