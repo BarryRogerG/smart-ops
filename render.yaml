@@ -4,9 +4,9 @@ databases:
     plan: free
 
 services:
-  - type: static
+  - type: web
     name: smartops-backend
-    runtime: node
+    runtime: node           # <--- Node for the backend server
     rootDir: backend
     buildCommand: npm install && npx prisma generate
     startCommand: npm start
@@ -22,13 +22,13 @@ services:
 
   - type: web
     name: smartops-frontend
-   
+    runtime: static         # <--- Static for the React/Vite frontend
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishPath: dist # Explicitly use 'dist' for Vite
+    publishPath: dist       # This is now valid because runtime is static
     envVars:
       - key: VITE_API_URL
         fromService:
           type: web
           name: smartops-backend
-          property: host 
+          property: host
