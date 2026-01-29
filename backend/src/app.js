@@ -9,6 +9,11 @@ const aiRoutes = require('./routes/ai');
 
 const app = express();
 
+// Root health check route (placed before other routes)
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'SmartOps Backend is Live' });
+});
+
 // Middleware
 // CORS configuration - allows requests from frontend
 // Set FRONTEND_URL environment variable to your production frontend URL
