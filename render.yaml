@@ -20,11 +20,12 @@ services:
       - key: OPENAI_API_KEY
         sync: false 
 
-  - type: static          # <--- CHANGED: Was 'web', now 'static'
+  - type: web              # Leave this as 'web'
     name: smartops-frontend
+    runtime: static        # This is the magic line that tells Render it's a static site
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishDir: dist      # <--- Now valid because type is 'static'
+    staticPublishPath: dist # <--- THIS IS THE KEY: staticPublishPath (case sensitive)
     envVars:
       - key: VITE_API_URL
         fromService:
