@@ -18,16 +18,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = authService.getStoredUser();
-    if (storedUser && authService.isAuthenticated()) {
-      setUser(storedUser);
-      // Verify token is still valid
-      authService.getCurrentUser().catch(() => {
+    const initializeAuth = async () => {
+      try {
+        const storedUser = authService.getStoredUser();
+        const token = authService.getToken();
+        
+        // Only verify token if we have both user and token
+        if (storedUser && token) {
+          setUser(storedUser);
+          // Verify token is still valid by calling /auth/me
+          try {
+            const currentUser = await authService.getCurrentUser();
+            // Update user data in case it changed
+            setUser(currentUser);
+            localStorage.setItem('user', JSON.stringify(currentUser));
+          } catch (error: any) {
+            // Token is invalid or expired - clear auth state
+            console.log('Token validation failed, clearing auth state:', error.response?.status);
+            authService.logout();
+            setUser(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
         authService.logout();
         setUser(null);
-      });
-    }
-    setIsLoading(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string) => {

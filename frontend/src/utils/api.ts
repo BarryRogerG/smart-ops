@@ -2,12 +2,19 @@ import axios from 'axios';
 
 // Get base URL and ensure it ends with /api
 let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+// Log the raw VITE_API_URL for debugging
+if (import.meta.env.VITE_API_URL) {
+  console.log('VITE_API_URL from env:', import.meta.env.VITE_API_URL);
+}
+
 // If VITE_API_URL doesn't end with /api, append it
 if (baseUrl && !baseUrl.endsWith('/api')) {
   baseUrl = baseUrl.endsWith('/') ? `${baseUrl}api` : `${baseUrl}/api`;
 }
 
 const API_BASE_URL = baseUrl;
+console.log('API_BASE_URL configured as:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
