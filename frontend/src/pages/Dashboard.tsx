@@ -23,10 +23,22 @@ export function Dashboard() {
 
   const loadDashboard = async () => {
     try {
+      console.log('[Dashboard] Loading dashboard data...');
       const dashboardData = await dashboardService.getDashboardData();
+      console.log('[Dashboard] Dashboard data loaded:', dashboardData);
+      console.log('[Dashboard] User role:', user?.role);
+      console.log('[Dashboard] Open items:', dashboardData.openItems?.length || 0);
+      console.log('[Dashboard] High priority items:', dashboardData.highPriorityItems?.length || 0);
+      console.log('[Dashboard] On hold items:', dashboardData.onHoldItems?.length || 0);
       setData(dashboardData);
-    } catch (error) {
-      console.error('Failed to load dashboard:', error);
+    } catch (error: any) {
+      console.error('[Dashboard] Failed to load dashboard:', error);
+      console.error('[Dashboard] Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+      });
+      toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
     }
