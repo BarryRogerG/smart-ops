@@ -1,5 +1,5 @@
 export type UserRole = 'user' | 'manager' | 'admin';
-export type WorkItemStatus = 'open' | 'in_progress' | 'blocked' | 'done';
+export type WorkItemStatus = 'open' | 'in_progress' | 'on_hold' | 'done';
 export type WorkItemPriority = 'low' | 'medium' | 'high' | 'critical';
 export type WorkItemType = 'task' | 'bug' | 'incident' | 'request';
 
@@ -45,7 +45,7 @@ export interface AISummary {
 export interface DashboardData {
   openItems: WorkItem[];
   highPriorityItems: WorkItem[];
-  blockedItems: WorkItem[];
+  onHoldItems: WorkItem[];
   itemsPerUser: {
     user: User;
     itemCount: number;

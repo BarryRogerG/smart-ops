@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Pause } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardService } from '../services/dashboard';
+import { workItemsService } from '../services/workItems';
 import { aiService } from '../services/ai';
-import { DashboardData } from '../types';
+import { DashboardData, WorkItem } from '../types';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/Button';
 import { toast } from 'react-hot-toast';
@@ -28,6 +29,24 @@ export function Dashboard() {
       console.error('Failed to load dashboard:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMoveToOnHold = async (item: WorkItem, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+      return;
+    }
+
+    try {
+      await workItemsService.update(item.id, { status: 'on_hold' });
+      toast.success(`"${item.title}" moved to On Hold`);
+      // Reload dashboard to reflect changes
+      await loadDashboard();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update work item');
     }
   };
 
@@ -141,31 +160,47 @@ export function Dashboard() {
                 <p className="text-gray-500">No open items</p>
               ) : (
                 data.openItems.slice(0, 5).map((item) => (
-                  <Link
+                  <div
                     key={item.id}
-                    to={`/work-items/${item.id}`}
-                    className="block p-3 border border-gray-200 rounded-md hover:bg-gray-50"
+                    className="group relative p-3 border border-gray-200 rounded-md hover:bg-gray-50"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-900">{item.title}</p>
-                        <p className="text-sm text-gray-500">
-                          {item.project?.name} • {item.assignedUser?.name || 'Unassigned'}
-                        </p>
+                    <Link
+                      to={`/work-items/${item.id}`}
+                      className="block"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{item.title}</p>
+                          <p className="text-sm text-gray-500">
+                            {item.project?.name} • {item.assignedUser?.name || 'Unassigned'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded ${
+                              item.priority === 'critical'
+                                ? 'bg-red-100 text-red-800'
+                                : item.priority === 'high'
+                                ? 'bg-orange-100 text-orange-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {item.priority}
+                          </span>
+                          {(user?.role === 'admin' || user?.role === 'manager') && (
+                            <button
+                              onClick={(e) => handleMoveToOnHold(item, e)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded"
+                              title="Move to On Hold"
+                              aria-label={`Move "${item.title}" to On Hold`}
+                            >
+                              <Pause className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <span
-                        className={`px-2 py-1 text-xs font-semibold rounded ${
-                          item.priority === 'critical'
-                            ? 'bg-red-100 text-red-800'
-                            : item.priority === 'high'
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {item.priority}
-                      </span>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))
               )}
             </div>
@@ -209,18 +244,18 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Blocked Items */}
+          {/* On Hold Items */}
           <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Blocked Items</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">On Hold Items</h2>
             <div className="space-y-3">
-              {data.blockedItems.length === 0 ? (
-                <p className="text-gray-500">No blocked items</p>
+              {data.onHoldItems.length === 0 ? (
+                <p className="text-gray-500">No items on hold</p>
               ) : (
-                data.blockedItems.map((item) => (
+                data.onHoldItems.map((item) => (
                   <Link
                     key={item.id}
                     to={`/work-items/${item.id}`}
-                    className="block p-3 border border-yellow-200 rounded-md hover:bg-yellow-50"
+                    className="block p-3 border border-orange-200 rounded-md hover:bg-orange-50"
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -229,8 +264,8 @@ export function Dashboard() {
                           {item.project?.name} • {item.assignedUser?.name || 'Unassigned'}
                         </p>
                       </div>
-                      <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-800">
-                        Blocked
+                      <span className="px-2 py-1 text-xs font-semibold rounded bg-orange-100 text-orange-800">
+                        On Hold
                       </span>
                     </div>
                   </Link>

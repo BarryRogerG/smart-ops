@@ -74,11 +74,11 @@ router.get('/', authenticate, async (req, res) => {
       },
     });
 
-    // Get blocked items
-    const blockedItems = await prisma.workItem.findMany({
+    // Get on hold items
+    const onHoldItems = await prisma.workItem.findMany({
       where: {
         ...where,
-        status: 'blocked',
+        status: 'on_hold',
       },
       include: {
         assignedUser: {
@@ -152,7 +152,7 @@ router.get('/', authenticate, async (req, res) => {
     res.json({
       openItems,
       highPriorityItems,
-      blockedItems,
+      onHoldItems,
       itemsPerUser,
     });
   } catch (error) {

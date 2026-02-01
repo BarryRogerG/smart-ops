@@ -112,7 +112,7 @@ export function WorkItemForm({
             >
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
-              <option value="blocked">Blocked</option>
+              <option value="on_hold">On Hold</option>
               <option value="done">Done</option>
             </select>
           </div>

@@ -8,6 +8,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  toggleRole?: () => void; // Development-only function to toggle role
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,8 +58,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // Development-only: Toggle role between 'admin' and 'user'
+  const toggleRole = () => {
+    if (import.meta.env.MODE !== 'development') {
+      return;
+    }
+    
+    if (user) {
+      const newRole: User['role'] = user.role === 'admin' ? 'user' : 'admin';
+      const updatedUser: User = {
+        ...user,
+        role: newRole,
+      };
+      setUser(updatedUser);
+      // Update localStorage to persist the change
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      console.log(`[DEV] Role toggled to: ${newRole}`);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        login, 
+        register, 
+        logout, 
+        isLoading,
+        toggleRole: import.meta.env.MODE === 'development' ? toggleRole : undefined
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

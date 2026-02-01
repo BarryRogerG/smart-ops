@@ -19,7 +19,7 @@ enum UserRole {
 enum WorkItemStatus {
   open
   in_progress
-  blocked
+  on_hold @map("blocked")
   done
 }
 
