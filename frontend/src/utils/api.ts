@@ -4,9 +4,8 @@ import axios from 'axios';
 let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 // Log the raw VITE_API_URL for debugging
-if (import.meta.env.VITE_API_URL) {
-  console.log('VITE_API_URL from env:', import.meta.env.VITE_API_URL);
-}
+console.log('[API Config] VITE_API_URL from env:', import.meta.env.VITE_API_URL || 'NOT SET - using default');
+console.log('[API Config] Raw baseUrl before processing:', baseUrl);
 
 // If VITE_API_URL doesn't end with /api, append it
 if (baseUrl && !baseUrl.endsWith('/api')) {
@@ -14,7 +13,8 @@ if (baseUrl && !baseUrl.endsWith('/api')) {
 }
 
 const API_BASE_URL = baseUrl;
-console.log('API_BASE_URL configured as:', API_BASE_URL);
+console.log('[API Config] Final API_BASE_URL:', API_BASE_URL);
+console.log('[API Config] Environment mode:', import.meta.env.MODE);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -47,13 +47,26 @@ api.interceptors.response.use(
   (error) => {
     // Log 404 errors with full details
     if (error.response?.status === 404) {
-      console.error('404 Error - Endpoint not found:', {
+      console.error('❌ 404 Error - Endpoint not found:', {
         method: error.config?.method?.toUpperCase(),
         url: error.config?.url,
         baseURL: error.config?.baseURL,
         fullURL: `${error.config?.baseURL}${error.config?.url}`,
         status: error.response?.status,
         statusText: error.response?.statusText,
+        responseData: error.response?.data,
+      });
+    } else if (!error.response) {
+      // Network error or CORS issue
+      console.error('❌ Network Error (no response):', {
+        message: error.message,
+        code: error.code,
+        config: error.config ? {
+          method: error.config.method?.toUpperCase(),
+          url: error.config.url,
+          baseURL: error.config.baseURL,
+          fullURL: `${error.config.baseURL}${error.config.url}`,
+        } : 'No config',
       });
     }
     
