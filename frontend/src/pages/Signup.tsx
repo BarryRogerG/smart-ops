@@ -15,7 +15,7 @@ export function Signup() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { register: registerContext } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -41,16 +41,10 @@ export function Signup() {
     setIsLoading(true);
 
     try {
-      // Register the user using authService
-      await authService.register({
-        name,
-        email,
-        password,
-        role: 'user', // New users default to 'user' role
-      });
-
-      // Auto-login after successful registration
-      await login(email, password);
+      // Register the user - AuthContext.register handles token storage and state update
+      // Backend automatically sets first user as 'admin', others as 'user'
+      await registerContext(name, email, password);
+      
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (err: any) {
