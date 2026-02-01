@@ -1,16 +1,21 @@
 import axios from 'axios';
 
-// Get base URL and ensure it ends with /api
+// Get base URL and ensure it ends with /api (no trailing slash)
 let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 // Log the raw VITE_API_URL for debugging
 console.log('[API Config] VITE_API_URL from env:', import.meta.env.VITE_API_URL || 'NOT SET - using default');
 console.log('[API Config] Raw baseUrl before processing:', baseUrl);
 
-// If VITE_API_URL doesn't end with /api, append it
-if (baseUrl && !baseUrl.endsWith('/api')) {
-  baseUrl = baseUrl.endsWith('/') ? `${baseUrl}api` : `${baseUrl}/api`;
+// Normalize the base URL:
+// 1. Remove trailing slashes
+baseUrl = baseUrl.replace(/\/+$/, '');
+// 2. If it doesn't end with /api, append it
+if (!baseUrl.endsWith('/api')) {
+  baseUrl = `${baseUrl}/api`;
 }
+// 3. Ensure no trailing slash on final URL
+baseUrl = baseUrl.replace(/\/+$/, '');
 
 const API_BASE_URL = baseUrl;
 console.log('[API Config] Final API_BASE_URL:', API_BASE_URL);
@@ -29,15 +34,22 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Normalize URL to prevent double slashes
+  // Axios handles this, but let's be explicit
+  const base = config.baseURL?.replace(/\/+$/, '') || '';
+  const path = config.url?.replace(/^\/+/, '/') || '';
+  const fullURL = `${base}${path}`;
+  
   // Log request details for debugging
-  console.log('API Request:', {
+  console.log('🔵 API Request:', {
     method: config.method?.toUpperCase(),
     url: config.url,
     baseURL: config.baseURL,
-    fullURL: `${config.baseURL}${config.url}`,
-    data: config.data,
-    headers: config.headers,
+    fullURL: fullURL,
+    normalized: { base, path, fullURL },
   });
+  
   return config;
 });
 
@@ -47,14 +59,21 @@ api.interceptors.response.use(
   (error) => {
     // Log 404 errors with full details
     if (error.response?.status === 404) {
+      const base = error.config?.baseURL?.replace(/\/+$/, '') || '';
+      const path = error.config?.url?.replace(/^\/+/, '/') || '';
+      const fullURL = `${base}${path}`;
+      
       console.error('❌ 404 Error - Endpoint not found:', {
         method: error.config?.method?.toUpperCase(),
         url: error.config?.url,
         baseURL: error.config?.baseURL,
-        fullURL: `${error.config?.baseURL}${error.config?.url}`,
+        fullURL: fullURL,
+        normalized: { base, path, fullURL },
         status: error.response?.status,
         statusText: error.response?.statusText,
         responseData: error.response?.data,
+        expectedBackendPath: '/api/auth/login',
+        expectedFullURL: `${error.config?.baseURL}/auth/login`,
       });
     } else if (!error.response) {
       // Network error or CORS issue
