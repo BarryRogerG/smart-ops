@@ -38,6 +38,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Log 404 errors with full details
+    if (error.response?.status === 404) {
+      console.error('404 Error - Endpoint not found:', {
+        method: error.config?.method?.toUpperCase(),
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullURL: `${error.config?.baseURL}${error.config?.url}`,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+      });
+    }
+    
     // Only redirect on 401 if we're NOT on the login page and it's NOT a login request
     if (error.response?.status === 401) {
       const isLoginRequest = error.config?.url?.includes('/auth/login');
