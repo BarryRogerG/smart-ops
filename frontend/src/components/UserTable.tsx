@@ -7,6 +7,50 @@ interface UserTableProps {
   currentUserId?: string;
 }
 
+// Bulletproof data extraction: handles nested objects and ensures string output
+function extractStringValue(value: unknown, fallback: string = ''): string {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+  
+  // If it's already a string, return it
+  if (typeof value === 'string') {
+    return value;
+  }
+  
+  // If it's a number, convert to string
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  
+  // If it's an object, try to extract nested values
+  if (typeof value === 'object') {
+    // Try common nested object patterns
+    if ('label' in value && typeof value.label === 'string') {
+      return value.label;
+    }
+    if ('value' in value && typeof value.value === 'string') {
+      return value.value;
+    }
+    if ('name' in value && typeof value.name === 'string') {
+      return value.name;
+    }
+    if ('text' in value && typeof value.text === 'string') {
+      return value.text;
+    }
+    // Last resort: JSON stringify (but limit length)
+    try {
+      const str = JSON.stringify(value);
+      return str.length > 50 ? str.substring(0, 50) + '...' : str;
+    } catch {
+      return fallback;
+    }
+  }
+  
+  // Fallback: convert to string
+  return String(value);
+}
+
 export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableProps) {
   // Universal data guard with optional chaining and nullish coalescing
   const safeUsers = (users ?? []) || [];
@@ -43,33 +87,57 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {(safeUsers || []).map((user, index) => {
-            // Data sanitization: ensure all fields are strings
-            const safeName = String(user?.name ?? 'Unknown');
-            const safeEmail = String(user?.email ?? 'No email');
-            const safeRole = String(user?.role ?? 'user');
-            const safeId = String(user?.id ?? `temp-${index}`);
+            // Bulletproof data extraction with object guards
+            const rawName = user?.name;
+            const rawEmail = user?.email;
+            const rawRole = user?.role;
+            const rawId = user?.id;
+            const rawCreatedAt = user?.createdAt;
+            
+            // Extract string values (handles nested objects)
+            const safeName = extractStringValue(rawName, 'Unknown');
+            const safeEmail = extractStringValue(rawEmail, 'No email');
+            const safeRole = extractStringValue(rawRole, 'user');
+            const safeId = extractStringValue(rawId, `temp-${index}`);
+            
+            // Ensure all are strings (double safety)
+            const finalName = String(safeName || '');
+            const finalEmail = String(safeEmail || '');
+            const finalRole = String(safeRole || 'user');
+            const finalId = String(safeId || user?.email || `user-${index}`);
+            
+            // Safe date formatting
+            let safeCreatedDate = '-';
+            if (rawCreatedAt) {
+              try {
+                const dateValue = typeof rawCreatedAt === 'string' ? rawCreatedAt : String(rawCreatedAt);
+                safeCreatedDate = new Date(dateValue).toLocaleDateString();
+              } catch {
+                safeCreatedDate = '-';
+              }
+            }
             
             return (
-              <tr key={safeId} className="hover:bg-gray-50">
+              <tr key={finalId} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {safeName}
+                  {finalName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{safeEmail}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{finalEmail}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`px-2 py-1 text-xs font-semibold rounded ${
-                      safeRole === 'admin'
+                      finalRole === 'admin'
                         ? 'bg-red-100 text-red-800'
-                        : safeRole === 'manager'
+                        : finalRole === 'manager'
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {safeRole}
+                    {finalRole}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                  {safeCreatedDate}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <button
@@ -78,9 +146,9 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
                   >
                     Edit
                   </button>
-                  {safeId && safeId !== String(currentUserId ?? '') && (
+                  {finalId && finalId !== String(currentUserId || '') && (
                     <button
-                      onClick={() => safeId && onDelete(safeId)}
+                      onClick={() => finalId && onDelete(finalId)}
                       className="text-red-600 hover:text-red-800"
                     >
                       Delete

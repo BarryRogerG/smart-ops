@@ -119,26 +119,27 @@ export const MOCK_PROJECTS: Project[] = [
 ];
 
 // Mock Users for showcase mode
+// All fields are explicitly strings (no nested objects) to prevent React Error #310
 export const MOCK_USERS: User[] = [
   {
-    id: 'guest',
-    name: 'Showcase Admin',
-    email: 'guest@smartops.com',
-    role: 'admin',
-    createdAt: new Date().toISOString(),
+    id: String('guest'),
+    name: String('Showcase Admin'),
+    email: String('guest@smartops.com'),
+    role: String('admin') as User['role'],
+    createdAt: String(new Date().toISOString()),
   },
   {
-    id: 'mock-user-1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'manager',
-    createdAt: new Date().toISOString(),
+    id: String('mock-user-1'),
+    name: String('John Doe'),
+    email: String('john@example.com'),
+    role: String('manager') as User['role'],
+    createdAt: String(new Date().toISOString()),
   },
   {
-    id: 'mock-user-2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'user',
-    createdAt: new Date().toISOString(),
+    id: String('mock-user-2'),
+    name: String('Jane Smith'),
+    email: String('jane@example.com'),
+    role: String('user') as User['role'],
+    createdAt: String(new Date().toISOString()),
   },
 ];

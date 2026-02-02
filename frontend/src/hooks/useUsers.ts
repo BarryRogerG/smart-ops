@@ -28,14 +28,36 @@ export function useUsers() {
       // Ensure data is an array, fallback to mock data
       const rawUserList = Array.isArray(data) && data.length > 0 ? data : MOCK_USERS;
       
-      // Sanitize all user objects to ensure all fields are strings
-      const userList: User[] = rawUserList.map((user, index) => ({
-        id: String(user?.id ?? `user-${index}`),
-        name: String(user?.name ?? 'Unknown'),
-        email: String(user?.email ?? 'No email'),
-        role: String(user?.role ?? 'user') as UserRole,
-        createdAt: user?.createdAt ? String(user.createdAt) : new Date().toISOString(),
-      }));
+      // Bulletproof sanitization: extract string values from potentially nested objects
+      const extractString = (value: unknown, fallback: string): string => {
+        if (value === null || value === undefined) return fallback;
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number') return String(value);
+        if (typeof value === 'object') {
+          // Handle nested objects (e.g., {label: 'Admin'})
+          if ('label' in value && typeof value.label === 'string') return value.label;
+          if ('value' in value && typeof value.value === 'string') return value.value;
+          if ('name' in value && typeof value.name === 'string') return value.name;
+        }
+        return String(value);
+      };
+      
+      // Sanitize all user objects to ensure all fields are strings (no nested objects)
+      const userList: User[] = rawUserList.map((user, index) => {
+        const rawId = user?.id;
+        const rawName = user?.name;
+        const rawEmail = user?.email;
+        const rawRole = user?.role;
+        const rawCreatedAt = user?.createdAt;
+        
+        return {
+          id: extractString(rawId, `user-${index}`),
+          name: extractString(rawName, 'Unknown'),
+          email: extractString(rawEmail, 'No email'),
+          role: extractString(rawRole, 'user') as UserRole,
+          createdAt: extractString(rawCreatedAt, new Date().toISOString()),
+        };
+      });
       
       console.log('[useUsers] Users loaded from API, count:', userList.length);
       console.log('[useUsers] Sanitized user list:', userList);
@@ -90,17 +112,36 @@ export function useUsers() {
         ...(userData.password && { password: userData.password }),
       });
       
+      // Bulletproof extraction: ensure we have the user object, not the entire response
+      // Handle nested objects and extract string values
+      const extractString = (value: unknown, fallback: string): string => {
+        if (value === null || value === undefined) return fallback;
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number') return String(value);
+        if (typeof value === 'object') {
+          if ('label' in value && typeof value.label === 'string') return value.label;
+          if ('value' in value && typeof value.value === 'string') return value.value;
+          if ('name' in value && typeof value.name === 'string') return value.name;
+        }
+        return String(value);
+      };
+      
       // Ensure we have the user object, not the entire response
-      // usersService.create should return User, but sanitize to be safe
       const newUser: User = response && typeof response === 'object' && 'id' in response
         ? {
-            id: String(response.id ?? ''),
-            name: String(response.name ?? ''),
-            email: String(response.email ?? ''),
-            role: String(response.role ?? 'user') as UserRole,
-            createdAt: response.createdAt ? String(response.createdAt) : new Date().toISOString(),
+            id: extractString(response.id, ''),
+            name: extractString(response.name, ''),
+            email: extractString(response.email, ''),
+            role: extractString(response.role, 'user') as UserRole,
+            createdAt: extractString(response.createdAt, new Date().toISOString()),
           }
-        : response as User;
+        : {
+            id: extractString((response as any)?.id, ''),
+            name: extractString((response as any)?.name, ''),
+            email: extractString((response as any)?.email, ''),
+            role: extractString((response as any)?.role, 'user') as UserRole,
+            createdAt: extractString((response as any)?.createdAt, new Date().toISOString()),
+          };
       
       console.log('[useUsers] User created via API, received:', newUser);
       console.log('[useUsers] Sanitized user object:', newUser);
