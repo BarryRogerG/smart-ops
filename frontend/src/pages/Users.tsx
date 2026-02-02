@@ -88,23 +88,33 @@ export function Users() {
     setIsSubmitting(true);
     try {
       if (isCreating) {
-        const newUser = await usersService.create({
+        const response = await usersService.create({
           name: formData.name,
           email: formData.email,
           role: formData.role as 'user' | 'manager' | 'admin',
         });
         
-        // Sanitize the new user
+        // usersService.create returns response.data.user, so response is already the User object
+        // But ensure we handle both cases: direct User or { user: User }
+        const userData = (response as any)?.user || response;
+        
+        // Sanitize the new user - ensure all fields are strings
         const sanitizedNewUser: User = {
-          id: String(newUser?.id ?? ''),
-          name: String(newUser?.name ?? ''),
-          email: String(newUser?.email ?? ''),
-          role: String(newUser?.role ?? 'user') as User['role'],
-          createdAt: String(newUser?.createdAt ?? new Date().toISOString()),
+          id: String(userData?.id ?? ''),
+          name: String(userData?.name ?? formData.name),
+          email: String(userData?.email ?? formData.email),
+          role: String(userData?.role ?? formData.role) as User['role'],
+          createdAt: String(userData?.createdAt ?? new Date().toISOString()),
         };
         
+        console.log('[Users] New user created:', sanitizedNewUser);
+        
         // Add to state immediately
-        setUsers((prev) => [...prev, sanitizedNewUser]);
+        setUsers((prev) => {
+          const updated = [...prev, sanitizedNewUser];
+          console.log('[Users] Updated users list, count:', updated.length);
+          return updated;
+        });
         
         toast.success('User successfully created!');
         setIsCreating(false);
