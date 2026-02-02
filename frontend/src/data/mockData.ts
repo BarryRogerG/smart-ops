@@ -120,9 +120,10 @@ export const MOCK_PROJECTS: Project[] = [
 
 // Mock Users for showcase mode
 // All fields are explicitly strings (no nested objects) to prevent React Error #310
+// Each user has a unique ID for proper filtering during delete operations
 export const MOCK_USERS: User[] = [
   {
-    id: String('guest'),
+    id: String('mock-user-guest'),
     name: String('Showcase Admin'),
     email: String('guest@smartops.com'),
     role: String('admin') as User['role'],

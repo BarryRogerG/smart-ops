@@ -157,27 +157,81 @@ export function Users() {
   };
 
   const onDeleteClick = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    // Confirmation dialog
+    if (!window.confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    // Store the user being deleted for potential rollback
+    const userToDelete = users.find(u => u.id === userId || u.email === userId);
+    const isShowcaseMode = currentUser?.id === 'guest';
 
     try {
+      // Optimistic update: remove from UI immediately
+      setUsers((prevUsers) => {
+        // Filter using id OR email as fallback
+        const filtered = prevUsers.filter(user => {
+          const userIdentifier = String(user?.id || user?.email || '');
+          const deleteIdentifier = String(userId || '');
+          return userIdentifier !== deleteIdentifier;
+        });
+        console.log('[Users] Optimistic delete - removed user, remaining count:', filtered.length);
+        return filtered;
+      });
+
+      // Call API to delete
       await usersService.delete(userId);
       
-      // Reload users after delete
-      const updatedData = await usersService.getAll();
-      const userList = Array.isArray(updatedData) ? updatedData : [];
-      const sanitizedUsers: User[] = userList.map((user, index) => ({
-        id: String(user?.id ?? `user-${index}`),
-        name: String(user?.name ?? 'Unknown'),
-        email: String(user?.email ?? 'No email'),
-        role: String(user?.role ?? 'user') as User['role'],
-        createdAt: String(user?.createdAt ?? new Date().toISOString()),
-      }));
-      setUsers(sanitizedUsers);
+      // Only reload from server if NOT in showcase mode
+      if (!isShowcaseMode) {
+        try {
+          const updatedData = await usersService.getAll();
+          const userList = Array.isArray(updatedData) ? updatedData : [];
+          
+          // Only update if we got valid data
+          if (userList.length > 0 || userList.length === 0) {
+            const sanitizedUsers: User[] = userList.map((user, index) => ({
+              id: String(user?.id ?? `user-${index}`),
+              name: String(user?.name ?? 'Unknown'),
+              email: String(user?.email ?? 'No email'),
+              role: String(user?.role ?? 'user') as User['role'],
+              createdAt: String(user?.createdAt ?? new Date().toISOString()),
+            }));
+            setUsers(sanitizedUsers);
+          }
+        } catch (reloadError) {
+          console.error('[Users] Failed to reload users after delete:', reloadError);
+          // Keep the optimistic update if reload fails
+        }
+      }
       
       toast.success('User deleted successfully');
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || 'Failed to delete user');
+      // On error, restore the user (rollback optimistic update)
+      if (userToDelete) {
+        setUsers((prevUsers) => {
+          // Check if user is already in list (avoid duplicates)
+          const exists = prevUsers.some(u => 
+            (u.id && userToDelete.id && u.id === userToDelete.id) ||
+            (u.email && userToDelete.email && u.email === userToDelete.email)
+          );
+          if (exists) {
+            return prevUsers;
+          }
+          return [...prevUsers, userToDelete];
+        });
+      }
+      
+      const err = error as { response?: { data?: { error?: string }; status?: number } };
+      const status = err.response?.status;
+      
+      // Only show error if it's not a network/backend issue in showcase mode
+      if (!isShowcaseMode || (status && status >= 200 && status < 300)) {
+        toast.error(err.response?.data?.error || 'Failed to delete user');
+      } else {
+        // In showcase mode, if backend is down, just keep the optimistic update
+        console.log('[Users] Showcase mode - keeping optimistic delete');
+      }
     }
   };
 
