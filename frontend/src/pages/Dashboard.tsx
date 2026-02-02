@@ -4,12 +4,14 @@ import { Sparkles, Pause } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardService } from '../services/dashboard';
 import { workItemsService } from '../services/workItems';
+import { usersService } from '../services/users';
 import { aiService } from '../services/ai';
 import { DashboardData, WorkItem } from '../types';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
+import { MOCK_WORK_ITEMS, MOCK_USERS } from '../data/mockData';
 
 // Default empty dashboard data structure
 const EMPTY_DASHBOARD_DATA: DashboardData = {
@@ -18,6 +20,54 @@ const EMPTY_DASHBOARD_DATA: DashboardData = {
   onHoldItems: [],
   itemsPerUser: [],
 };
+
+// Calculate dashboard stats from work items array
+function calculateDashboardStats(workItems: WorkItem[], users: any[] = []): DashboardData {
+  // Open Items: status is NOT 'done' and NOT 'on_hold' (so 'open' or 'in_progress')
+  const openItems = workItems.filter(
+    item => item.status !== 'done' && item.status !== 'on_hold'
+  );
+
+  // High Priority: priority is 'high' or 'critical'
+  const highPriorityItems = workItems.filter(
+    item => item.priority === 'high' || item.priority === 'critical'
+  );
+
+  // On Hold Items: status is 'on_hold'
+  const onHoldItems = workItems.filter(item => item.status === 'on_hold');
+
+  // Items Per User: group by assignedTo
+  const itemsPerUserMap = new Map<string, { user: any; itemCount: number }>();
+  
+  workItems.forEach(item => {
+    const assignedTo = item.assignedTo || item.assignedUser?.id || 'unassigned';
+    const assignedUser = item.assignedUser || users.find(u => u.id === assignedTo) || {
+      id: assignedTo,
+      name: assignedTo === 'unassigned' ? 'Unassigned' : 'Unknown User',
+      email: '',
+      role: 'user' as const,
+    };
+
+    if (itemsPerUserMap.has(assignedTo)) {
+      const existing = itemsPerUserMap.get(assignedTo)!;
+      existing.itemCount += 1;
+    } else {
+      itemsPerUserMap.set(assignedTo, {
+        user: assignedUser,
+        itemCount: 1,
+      });
+    }
+  });
+
+  const itemsPerUser = Array.from(itemsPerUserMap.values());
+
+  return {
+    openItems,
+    highPriorityItems,
+    onHoldItems,
+    itemsPerUser,
+  };
+}
 
 export function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
@@ -34,56 +84,73 @@ export function Dashboard() {
   }, [authLoading]);
 
   const loadDashboard = async () => {
+    const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
+    
     try {
       console.log('[Dashboard] Loading dashboard data...');
-      // The service will return fallback data if backend is down
-      const dashboardData = await dashboardService.getDashboardData();
-      console.log('[Dashboard] Dashboard data loaded:', dashboardData);
-      console.log('[Dashboard] User role:', user?.role);
-      console.log('[Dashboard] Open items:', dashboardData?.openItems?.length || 0);
-      console.log('[Dashboard] High priority items:', dashboardData?.highPriorityItems?.length || 0);
-      console.log('[Dashboard] On hold items:', dashboardData?.onHoldItems?.length || 0);
       
-      // Ensure all arrays exist, default to empty arrays if missing
-      setData({
-        openItems: dashboardData?.openItems || [],
-        highPriorityItems: dashboardData?.highPriorityItems || [],
-        onHoldItems: dashboardData?.onHoldItems || [],
-        itemsPerUser: dashboardData?.itemsPerUser || [],
-      });
+      // In showcase mode, calculate directly from mock data
+      if (isShowcaseMode) {
+        console.log('[Dashboard] Showcase mode - calculating from mock data');
+        const calculatedData = calculateDashboardStats(MOCK_WORK_ITEMS, MOCK_USERS);
+        setData(calculatedData);
+        setIsLoading(false);
+        return;
+      }
+
+      // Try to get data from backend API
+      const dashboardData = await dashboardService.getDashboardData();
+      console.log('[Dashboard] Dashboard data loaded from API:', dashboardData);
+      
+      // Check if API returned empty data
+      const hasData = 
+        (dashboardData?.openItems?.length ?? 0) > 0 ||
+        (dashboardData?.highPriorityItems?.length ?? 0) > 0 ||
+        (dashboardData?.onHoldItems?.length ?? 0) > 0 ||
+        (dashboardData?.itemsPerUser?.length ?? 0) > 0;
+
+      if (!hasData) {
+        console.log('[Dashboard] API returned empty data, trying to fetch work items directly...');
+        // Try to fetch work items directly and calculate stats
+        try {
+          const allWorkItems = await workItemsService.getAll();
+          const allUsers = await usersService.getAll().catch(() => []);
+          
+          if (Array.isArray(allWorkItems) && allWorkItems.length > 0) {
+            console.log('[Dashboard] Calculating stats from fetched work items:', allWorkItems.length);
+            const calculatedData = calculateDashboardStats(allWorkItems, allUsers);
+            setData(calculatedData);
+          } else {
+            // Still empty, use mock data as fallback
+            console.log('[Dashboard] No work items found, using mock data');
+            const calculatedData = calculateDashboardStats(MOCK_WORK_ITEMS, MOCK_USERS);
+            setData(calculatedData);
+          }
+        } catch (fetchError) {
+          console.warn('[Dashboard] Failed to fetch work items, using mock data:', fetchError);
+          const calculatedData = calculateDashboardStats(MOCK_WORK_ITEMS, MOCK_USERS);
+          setData(calculatedData);
+        }
+      } else {
+        // API returned data, use it
+        setData({
+          openItems: dashboardData?.openItems || [],
+          highPriorityItems: dashboardData?.highPriorityItems || [],
+          onHoldItems: dashboardData?.onHoldItems || [],
+          itemsPerUser: dashboardData?.itemsPerUser || [],
+        });
+      }
     } catch (error: any) {
       console.error('[Dashboard] Failed to load dashboard:', error);
-      console.error('[Dashboard] Error details:', {
-        message: error?.message,
-        response: error?.response?.data,
-        status: error?.response?.status,
-      });
       
-      // The service should have returned fallback data, but if it didn't,
-      // use empty arrays to prevent crashes
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        // Auth errors - service should have handled this, but ensure we have data
-        console.warn('[Dashboard] Auth error, using empty data structure');
-        setData(EMPTY_DASHBOARD_DATA);
-      } else {
-        // Other errors - show a gentle message and use fallback
+      // On error, calculate from mock data for showcase
+      console.log('[Dashboard] Error occurred, calculating from mock data');
+      const calculatedData = calculateDashboardStats(MOCK_WORK_ITEMS, MOCK_USERS);
+      setData(calculatedData);
+      
+      // Only show error toast if not in showcase mode
+      if (!isShowcaseMode) {
         toast.error('Backend is starting up. Showing sample data...', { duration: 3000 });
-        // Try to get fallback data from service
-        try {
-          const fallbackData = await dashboardService.getDashboardData().catch(() => null);
-          if (fallbackData) {
-            setData({
-              openItems: fallbackData?.openItems || [],
-              highPriorityItems: fallbackData?.highPriorityItems || [],
-              onHoldItems: fallbackData?.onHoldItems || [],
-              itemsPerUser: fallbackData?.itemsPerUser || [],
-            });
-          } else {
-            setData(EMPTY_DASHBOARD_DATA);
-          }
-        } catch {
-          setData(EMPTY_DASHBOARD_DATA);
-        }
       }
     } finally {
       setIsLoading(false);
@@ -229,7 +296,7 @@ export function Dashboard() {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Open Work Items</h2>
             <div className="space-y-3">
-              {openItems.length === 0 ? (
+              {!isLoading && openItems.length === 0 ? (
                 <p className="text-gray-500">No open items</p>
               ) : (
                 openItems.slice(0, 5).map((item) => (
@@ -291,7 +358,7 @@ export function Dashboard() {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">High Priority Issues</h2>
             <div className="space-y-3">
-              {highPriorityItems.length === 0 ? (
+              {!isLoading && highPriorityItems.length === 0 ? (
                 <p className="text-gray-500">No high priority items</p>
               ) : (
                 highPriorityItems.slice(0, 5).map((item) => (
@@ -321,7 +388,7 @@ export function Dashboard() {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">On Hold Items</h2>
             <div className="space-y-3">
-              {onHoldItems.length === 0 ? (
+              {!isLoading && onHoldItems.length === 0 ? (
                 <p className="text-gray-500">No items on hold</p>
               ) : (
                 onHoldItems.map((item) => (
@@ -352,7 +419,7 @@ export function Dashboard() {
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Items Per User</h2>
               <div className="space-y-3">
-                {itemsPerUser.length === 0 ? (
+                {!isLoading && itemsPerUser.length === 0 ? (
                   <p className="text-gray-500">No user data available</p>
                 ) : (
                   itemsPerUser.map(({ user, itemCount }) => (
