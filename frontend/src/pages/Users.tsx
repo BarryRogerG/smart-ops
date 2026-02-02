@@ -88,26 +88,25 @@ export function Users() {
     setIsSubmitting(true);
     try {
       if (isCreating) {
-        const response = await usersService.create({
+        // usersService.create already extracts response.data.user, so newUser is the User object
+        const newUser = await usersService.create({
           name: formData.name,
           email: formData.email,
           role: formData.role as 'user' | 'manager' | 'admin',
         });
         
-        // usersService.create returns response.data.user, so response is already the User object
-        // But ensure we handle both cases: direct User or { user: User }
-        const userData = (response as any)?.user || response;
-        
         // Sanitize the new user - ensure all fields are strings
+        // Use formData as fallback in case backend response is missing fields
         const sanitizedNewUser: User = {
-          id: String(userData?.id ?? ''),
-          name: String(userData?.name ?? formData.name),
-          email: String(userData?.email ?? formData.email),
-          role: String(userData?.role ?? formData.role) as User['role'],
-          createdAt: String(userData?.createdAt ?? new Date().toISOString()),
+          id: String(newUser?.id ?? ''),
+          name: String(newUser?.name ?? formData.name),
+          email: String(newUser?.email ?? formData.email),
+          role: String(newUser?.role ?? formData.role) as User['role'],
+          createdAt: String(newUser?.createdAt ?? new Date().toISOString()),
         };
         
         console.log('[Users] New user created:', sanitizedNewUser);
+        console.log('[Users] Raw response from service:', newUser);
         
         // Add to state immediately
         setUsers((prev) => {
