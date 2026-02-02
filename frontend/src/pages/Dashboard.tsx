@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Pause } from 'lucide-react';
+import { Sparkles, Pause, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardService } from '../services/dashboard';
 import { workItemsService } from '../services/workItems';
@@ -210,6 +210,12 @@ export function Dashboard() {
   const handleGenerate = async () => {
     if (user?.role !== 'manager' && user?.role !== 'admin') return;
 
+    // Toggle: If summary is visible, hide it
+    if (summary) {
+      setSummary(null);
+      return;
+    }
+
     setIsGenerating(true);
     
     // Extract local context from current dashboard stats
@@ -223,7 +229,7 @@ export function Dashboard() {
       // Try backend AI first (unless in showcase mode)
       if (!isShowcaseMode) {
         try {
-          // Send dashboard context to backend
+          // Send dashboard context to backend - recalculate with current stats
           const allWorkItems = [...openItems, ...highPriorityItems, ...onHoldItems];
           const generatedSummary = await aiService.generateSummary(allWorkItems);
           setSummary(generatedSummary);
@@ -235,7 +241,7 @@ export function Dashboard() {
         }
       }
       
-      // Showcase mode or backend failed - use local generation
+      // Showcase mode or backend failed - use local generation (recalculate with current stats)
       const localSummary = generateLocalSummary({
         openItems,
         highPriorityItems,
@@ -252,6 +258,10 @@ export function Dashboard() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCloseSummary = () => {
+    setSummary(null);
   };
 
   // Show loading spinner while auth or data is loading
@@ -300,7 +310,7 @@ export function Dashboard() {
               isLoading={isGenerating}
               variant="primary"
             >
-              Generate AI Summary
+              {summary ? 'Hide Summary' : 'Generate AI Summary'}
             </Button>
           )}
         </div>
@@ -331,12 +341,22 @@ export function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* AI Summary Card */}
+          {/* AI Summary Card with smooth transition */}
           {summary && (
-            <div className="lg:col-span-2 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-6 shadow-sm relative">
+            <div className="lg:col-span-2 mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-6 shadow-sm relative animate-fade-in">
+              {/* Close Button */}
+              <button
+                onClick={handleCloseSummary}
+                className="absolute top-4 right-4 p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-md transition-colors"
+                aria-label="Close summary"
+                title="Close summary"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
               {/* Mock Mode Badge */}
               {summary.includes('Preview Mode') || summary.includes('System Note') ? (
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-12">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-300">
                     Mock Mode
                   </span>
@@ -344,7 +364,7 @@ export function Dashboard() {
               ) : null}
               
               <div>
-                <h3 className="text-lg font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-indigo-900 mb-2 flex items-center gap-2 pr-8">
                   <Sparkles className="h-5 w-5 text-indigo-600" />
                   AI Summary
                 </h3>
