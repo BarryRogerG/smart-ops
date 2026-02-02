@@ -141,7 +141,15 @@ export const dashboardService = {
   async getDashboardData(): Promise<DashboardData> {
     try {
       const response = await api.get<DashboardData>('/dashboard');
-      return response.data;
+      const data = response.data;
+      
+      // Ensure all arrays exist, default to empty arrays if missing
+      return {
+        openItems: data?.openItems || [],
+        highPriorityItems: data?.highPriorityItems || [],
+        onHoldItems: data?.onHoldItems || [],
+        itemsPerUser: data?.itemsPerUser || [],
+      };
     } catch (error: any) {
       // If backend is down (404, 500, network error), return fallback data for showcase
       if (
@@ -153,7 +161,12 @@ export const dashboardService = {
         console.warn('[Dashboard] Backend unavailable, using fallback data:', error.response?.status || 'network error');
         return FALLBACK_DASHBOARD_DATA;
       }
-      // Re-throw other errors (401, 403, etc.)
+      // For auth errors, still return fallback data for showcase mode
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.warn('[Dashboard] Auth error, using fallback data for showcase mode');
+        return FALLBACK_DASHBOARD_DATA;
+      }
+      // Re-throw other unexpected errors
       throw error;
     }
   },

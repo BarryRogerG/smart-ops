@@ -11,9 +11,17 @@ import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
 
+// Default empty dashboard data structure
+const EMPTY_DASHBOARD_DATA: DashboardData = {
+  openItems: [],
+  highPriorityItems: [],
+  onHoldItems: [],
+  itemsPerUser: [],
+};
+
 export function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,10 +40,17 @@ export function Dashboard() {
       const dashboardData = await dashboardService.getDashboardData();
       console.log('[Dashboard] Dashboard data loaded:', dashboardData);
       console.log('[Dashboard] User role:', user?.role);
-      console.log('[Dashboard] Open items:', dashboardData.openItems?.length || 0);
-      console.log('[Dashboard] High priority items:', dashboardData.highPriorityItems?.length || 0);
-      console.log('[Dashboard] On hold items:', dashboardData.onHoldItems?.length || 0);
-      setData(dashboardData);
+      console.log('[Dashboard] Open items:', dashboardData?.openItems?.length || 0);
+      console.log('[Dashboard] High priority items:', dashboardData?.highPriorityItems?.length || 0);
+      console.log('[Dashboard] On hold items:', dashboardData?.onHoldItems?.length || 0);
+      
+      // Ensure all arrays exist, default to empty arrays if missing
+      setData({
+        openItems: dashboardData?.openItems || [],
+        highPriorityItems: dashboardData?.highPriorityItems || [],
+        onHoldItems: dashboardData?.onHoldItems || [],
+        itemsPerUser: dashboardData?.itemsPerUser || [],
+      });
     } catch (error: any) {
       console.error('[Dashboard] Failed to load dashboard:', error);
       console.error('[Dashboard] Error details:', {
@@ -45,17 +60,31 @@ export function Dashboard() {
       });
       
       // The service should have returned fallback data, but if it didn't,
-      // we'll show a message and try to get fallback data directly
+      // use empty arrays to prevent crashes
       if (error.response?.status === 401 || error.response?.status === 403) {
         // Auth errors - service should have handled this, but ensure we have data
-        console.warn('[Dashboard] Auth error, ensuring fallback data is available');
+        console.warn('[Dashboard] Auth error, using empty data structure');
+        setData(EMPTY_DASHBOARD_DATA);
       } else {
-        // Other errors - show a gentle message
+        // Other errors - show a gentle message and use fallback
         toast.error('Backend is starting up. Showing sample data...', { duration: 3000 });
+        // Try to get fallback data from service
+        try {
+          const fallbackData = await dashboardService.getDashboardData().catch(() => null);
+          if (fallbackData) {
+            setData({
+              openItems: fallbackData?.openItems || [],
+              highPriorityItems: fallbackData?.highPriorityItems || [],
+              onHoldItems: fallbackData?.onHoldItems || [],
+              itemsPerUser: fallbackData?.itemsPerUser || [],
+            });
+          } else {
+            setData(EMPTY_DASHBOARD_DATA);
+          }
+        } catch {
+          setData(EMPTY_DASHBOARD_DATA);
+        }
       }
-      
-      // Ensure we have data to display (service should have provided fallback)
-      // If somehow we don't have data, the component will show "Failed to load"
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +126,7 @@ export function Dashboard() {
     }
   };
 
+  // Show loading spinner while auth or data is loading
   if (authLoading || isLoading) {
     return (
       <Layout>
@@ -109,13 +139,12 @@ export function Dashboard() {
     );
   }
 
-  if (!data) {
-    return (
-      <Layout>
-        <div>Failed to load dashboard</div>
-      </Layout>
-    );
-  }
+  // Ensure data exists with all required arrays (should always be true now, but defensive check)
+  const safeData = data || EMPTY_DASHBOARD_DATA;
+  const openItems = safeData.openItems || [];
+  const highPriorityItems = safeData.highPriorityItems || [];
+  const onHoldItems = safeData.onHoldItems || [];
+  const itemsPerUser = safeData.itemsPerUser || [];
 
   const isAdmin = user?.role === 'admin';
   const isGuestUser = user?.email === 'guest@smartops.com' || user?.id === 'guest';
@@ -200,10 +229,10 @@ export function Dashboard() {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Open Work Items</h2>
             <div className="space-y-3">
-              {data.openItems.length === 0 ? (
+              {openItems.length === 0 ? (
                 <p className="text-gray-500">No open items</p>
               ) : (
-                data.openItems.slice(0, 5).map((item) => (
+                openItems.slice(0, 5).map((item) => (
                   <div
                     key={item.id}
                     className="group relative p-3 border border-gray-200 rounded-md hover:bg-gray-50"
@@ -248,12 +277,12 @@ export function Dashboard() {
                 ))
               )}
             </div>
-            {data.openItems.length > 5 && (
+            {openItems.length > 5 && (
               <Link
                 to="/work-items"
                 className="mt-4 text-sm text-indigo-600 hover:text-indigo-800"
               >
-                View all ({data.openItems.length})
+                View all ({openItems.length})
               </Link>
             )}
           </div>
@@ -262,10 +291,10 @@ export function Dashboard() {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">High Priority Issues</h2>
             <div className="space-y-3">
-              {data.highPriorityItems.length === 0 ? (
+              {highPriorityItems.length === 0 ? (
                 <p className="text-gray-500">No high priority items</p>
               ) : (
-                data.highPriorityItems.slice(0, 5).map((item) => (
+                highPriorityItems.slice(0, 5).map((item) => (
                   <Link
                     key={item.id}
                     to={`/work-items/${item.id}`}
@@ -292,10 +321,10 @@ export function Dashboard() {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">On Hold Items</h2>
             <div className="space-y-3">
-              {data.onHoldItems.length === 0 ? (
+              {onHoldItems.length === 0 ? (
                 <p className="text-gray-500">No items on hold</p>
               ) : (
-                data.onHoldItems.map((item) => (
+                onHoldItems.map((item) => (
                   <Link
                     key={item.id}
                     to={`/work-items/${item.id}`}
@@ -323,7 +352,10 @@ export function Dashboard() {
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Items Per User</h2>
               <div className="space-y-3">
-                {data.itemsPerUser.map(({ user, itemCount }) => (
+                {itemsPerUser.length === 0 ? (
+                  <p className="text-gray-500">No user data available</p>
+                ) : (
+                  itemsPerUser.map(({ user, itemCount }) => (
                   <div
                     key={user.id}
                     className="flex justify-between items-center p-3 border border-gray-200 rounded-md"
@@ -336,7 +368,8 @@ export function Dashboard() {
                       {itemCount} items
                     </span>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}
