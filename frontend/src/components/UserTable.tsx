@@ -8,23 +8,6 @@ interface UserTableProps {
 }
 
 export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableProps) {
-  // Nuclear Sanitization: Convert ANY value to a safe string for rendering
-  const safeRender = (val: unknown): string => {
-    if (val === null || val === undefined) {
-      return '';
-    }
-    // If it's an object, JSON stringify it (handles nested objects)
-    if (typeof val === 'object') {
-      try {
-        return JSON.stringify(val);
-      } catch {
-        return '[Object]';
-      }
-    }
-    // Otherwise, convert to string
-    return String(val ?? '');
-  };
-
   // Universal data guard with optional chaining and nullish coalescing
   const safeUsers = (users ?? []) || [];
 
@@ -60,47 +43,40 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {(safeUsers || []).map((user, index) => {
-            // Nuclear sanitization: wrap every field in safeRender
-            const safeName = safeRender(user?.name);
-            const safeEmail = safeRender(user?.email);
-            const safeRole = safeRender(user?.role);
-            const safeId = safeRender(user?.id || user?.email || `user-${index}`);
-            
-            // Safe date formatting
-            let safeCreatedDate = '-';
-            if (user?.createdAt) {
-              try {
-                const dateValue = safeRender(user.createdAt);
-                if (dateValue && dateValue !== '-') {
-                  safeCreatedDate = new Date(dateValue).toLocaleDateString();
-                }
-              } catch {
-                safeCreatedDate = '-';
-              }
-            }
+            // SURGICAL ISOLATION: Start with just the index to verify the table structure works
+            // Force key to be a string
+            const rowKey = String(user?.id || user?.email || index);
             
             return (
-              <tr key={safeId} className="hover:bg-gray-50">
+              <tr key={rowKey} className="hover:bg-gray-50">
+                {/* Step 1: Basic test - just show index */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {safeName}
+                  User {index}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{safeEmail}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 text-xs font-semibold rounded ${
-                      safeRole === 'admin' || safeRole === '"admin"' || safeRole.includes('admin')
-                        ? 'bg-red-100 text-red-800'
-                        : safeRole === 'manager' || safeRole === '"manager"' || safeRole.includes('manager')
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {safeRole}
+                
+                {/* Step 2: Add name back with type check */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {typeof user?.name === 'string' ? user.name : 'Invalid Name'}
+                </td>
+                
+                {/* Step 3: Add email with type check */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {typeof user?.email === 'string' ? user.email : 'Invalid Email'}
+                </td>
+                
+                {/* Step 4: Role - plain span, no badge component, force to string */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800">
+                    {String(user?.role || '')}
                   </span>
                 </td>
+                
+                {/* Step 5: Created date - simple string conversion */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {safeCreatedDate}
+                  {user?.createdAt ? String(user.createdAt) : '-'}
                 </td>
+                
+                {/* Step 6: Actions - simplified */}
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <button
                     onClick={() => user && onEdit(user)}
@@ -108,9 +84,9 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
                   >
                     Edit
                   </button>
-                  {safeId && safeId !== safeRender(currentUserId) && (
+                  {rowKey && rowKey !== String(currentUserId || '') && (
                     <button
-                      onClick={() => safeId && onDelete(safeId)}
+                      onClick={() => rowKey && onDelete(rowKey)}
                       className="text-red-600 hover:text-red-800"
                     >
                       Delete
