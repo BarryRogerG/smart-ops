@@ -49,11 +49,9 @@ export function Login() {
     }
   }, [error]);
 
-  // Autocomplete control: 
-  // - Email: always allow autofill (users should be able to autofill email even after error)
-  // - Password: disable only when there's an error (to prevent password save prompt on failed login)
-  const autoCompleteEmail = 'email'; // Always allow email autofill
-  const autoCompletePassword = error ? 'off' : 'current-password'; // Only disable password autocomplete on error
+  // Use proper autocomplete values to allow legitimate autofill but prevent irrelevant suggestions
+  const autoCompleteEmail = 'username'; // Use 'username' for login forms (standard)
+  const autoCompletePassword = 'current-password'; // Standard for login password fields
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -135,7 +133,6 @@ export function Login() {
             required
             className="w-full px-3 py-2 border rounded-md"
             placeholder="Email"
-            data-lpignore="false"
           />
 
           <div className="relative">
@@ -149,7 +146,6 @@ export function Login() {
               required
               className="w-full px-3 py-2 pr-10 border rounded-md"
               placeholder="Password"
-              data-lpignore="false"
             />
             <button
               type="button"
