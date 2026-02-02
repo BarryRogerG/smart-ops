@@ -38,6 +38,7 @@ export function Users() {
     setIsSubmitting(true);
     try {
       if (isCreating) {
+        // Call createUser API - this includes optimistic update
         const newUser = await createUser({
           name: formData.name,
           email: formData.email,
@@ -45,20 +46,25 @@ export function Users() {
           // Password is optional - backend auto-generates if not provided
         });
         
+        console.log('[UserManagement] User created successfully:', newUser);
+        
+        // Explicitly refetch users list after successful creation (status 201)
+        const updatedUsers = await loadUsers();
+        console.log('[UserManagement] User list updated after creation:', updatedUsers);
+        console.log('[UserManagement] Updated users count:', updatedUsers?.length ?? 0);
+        
+        // In showcase mode, ensure user is in local state
+        if (currentUser?.id === 'guest' && newUser) {
+          console.log('[Showcase Mode] New user created:', newUser);
+          console.log('[Showcase Mode] Current users state:', users);
+        }
+        
         // Show success toast
         toast.success('User successfully created!');
         
-        // Clear form and hide it immediately
+        // Clear form and hide it immediately (set isCreating to false)
         setIsCreating(false);
         setEditingUser(null);
-        
-        // Ensure refetch happens (already done in createUser, but double-check)
-        await loadUsers();
-        
-        // In showcase mode, log for debugging
-        if (currentUser?.id === 'guest' && newUser) {
-          console.log('[Showcase Mode] New user created:', newUser);
-        }
       } else if (editingUser) {
         await updateUser(editingUser.id, {
           name: formData.name,
@@ -74,6 +80,7 @@ export function Users() {
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
+      console.error('[UserManagement] Error creating/updating user:', error);
       toast.error(err.response?.data?.error || `Failed to ${isCreating ? 'create' : 'update'} user`);
       // Don't clear form on error - let user fix and retry
     } finally {
@@ -108,6 +115,13 @@ export function Users() {
 
   // Universal data guard with optional chaining and nullish coalescing
   const safeUsers = (users ?? []) || MOCK_USERS;
+  
+  // Debug logging for state verification
+  useEffect(() => {
+    console.log('[UserManagement] Current users state:', users);
+    console.log('[UserManagement] Safe users count:', safeUsers.length);
+    console.log('[UserManagement] Is creating:', isCreating);
+  }, [users, safeUsers.length, isCreating]);
 
   return (
     <Layout>

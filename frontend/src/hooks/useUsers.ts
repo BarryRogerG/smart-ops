@@ -23,14 +23,18 @@ export function useUsers() {
 
   const loadUsers = useCallback(async () => {
     try {
+      console.log('[useUsers] Loading users from API...');
       const data = await usersService.getAll();
       // Ensure data is an array, fallback to mock data
       const userList = Array.isArray(data) && data.length > 0 ? data : MOCK_USERS;
+      console.log('[useUsers] Users loaded from API, count:', userList.length);
       setUsers(userList);
+      console.log('[useUsers] Users state updated, current state:', userList);
       return userList;
     } catch (error) {
-      console.error('Failed to load users:', error);
+      console.error('[useUsers] Failed to load users:', error);
       // Use mock data on error for showcase mode
+      console.log('[useUsers] Using mock data fallback, count:', MOCK_USERS.length);
       setUsers(MOCK_USERS);
       throw error;
     } finally {
@@ -40,7 +44,7 @@ export function useUsers() {
 
   // Create user via admin endpoint (password auto-generated if not provided)
   const createUser = useCallback(async (userData: CreateUserData) => {
-    // Optimistic update: Add temporary user to state immediately
+    // Optimistic update: Add temporary user to state immediately for instant UI
     const tempUser: User = {
       id: `temp-${Date.now()}`,
       name: userData.name,
@@ -49,15 +53,23 @@ export function useUsers() {
       createdAt: new Date().toISOString(),
     };
     
-    // Add to state immediately for instant UI update
+    console.log('[useUsers] Optimistic update - adding temp user:', tempUser);
+    
+    // Add to state immediately for instant UI update (showcase mode)
     setUsers((prevUsers) => {
       // Avoid duplicates
       const exists = prevUsers.some(u => u.email === userData.email);
-      if (exists) return prevUsers;
-      return [...prevUsers, tempUser];
+      if (exists) {
+        console.log('[useUsers] User with email already exists, skipping optimistic update');
+        return prevUsers;
+      }
+      const updated = [...prevUsers, tempUser];
+      console.log('[useUsers] Optimistic update applied, new count:', updated.length);
+      return updated;
     });
     
     try {
+      // API call to create user (returns status 201 on success)
       const newUser = await usersService.create({
         name: userData.name,
         email: userData.email,
@@ -66,19 +78,27 @@ export function useUsers() {
         ...(userData.password && { password: userData.password }),
       });
       
+      console.log('[useUsers] User created via API, received:', newUser);
+      
       // Replace temp user with real user from server
       setUsers((prevUsers) => {
-        return prevUsers.map(u => u.id === tempUser.id ? newUser : u);
+        const updated = prevUsers.map(u => u.id === tempUser.id ? newUser : u);
+        console.log('[useUsers] Replaced temp user with real user, count:', updated.length);
+        return updated;
       });
       
-      // Refetch users list to ensure we have the latest data
-      await loadUsers();
+      // Refetch users list to ensure we have the latest data from server
+      const refreshedUsers = await loadUsers();
+      console.log('[useUsers] Users list refreshed after creation, count:', refreshedUsers?.length ?? 0);
       
       return newUser;
     } catch (error) {
+      console.error('[useUsers] Error creating user, removing optimistic update:', error);
       // On error, remove the optimistic update
       setUsers((prevUsers) => {
-        return prevUsers.filter(u => u.id !== tempUser.id);
+        const updated = prevUsers.filter(u => u.id !== tempUser.id);
+        console.log('[useUsers] Removed temp user after error, count:', updated.length);
+        return updated;
       });
       throw error;
     }
