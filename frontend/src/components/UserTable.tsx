@@ -42,46 +42,54 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {(safeUsers || []).map((user) => (
-            <tr key={user?.id ?? ''} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {user?.name ?? 'Unknown'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user?.email ?? 'No email'}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-2 py-1 text-xs font-semibold rounded ${
-                    user?.role === 'admin'
-                      ? 'bg-red-100 text-red-800'
-                      : user?.role === 'manager'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {user?.role ?? 'user'}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <button
-                  onClick={() => user && onEdit(user)}
-                  className="text-indigo-600 hover:text-indigo-800 mr-4"
-                >
-                  Edit
-                </button>
-                {user?.id && user.id !== currentUserId && (
-                  <button
-                    onClick={() => user?.id && onDelete(user.id)}
-                    className="text-red-600 hover:text-red-800"
+          {(safeUsers || []).map((user, index) => {
+            // Data sanitization: ensure all fields are strings
+            const safeName = String(user?.name ?? 'Unknown');
+            const safeEmail = String(user?.email ?? 'No email');
+            const safeRole = String(user?.role ?? 'user');
+            const safeId = String(user?.id ?? `temp-${index}`);
+            
+            return (
+              <tr key={safeId} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {safeName}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{safeEmail}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded ${
+                      safeRole === 'admin'
+                        ? 'bg-red-100 text-red-800'
+                        : safeRole === 'manager'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
                   >
-                    Delete
+                    {safeRole}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <button
+                    onClick={() => user && onEdit(user)}
+                    className="text-indigo-600 hover:text-indigo-800 mr-4"
+                  >
+                    Edit
                   </button>
-                )}
-              </td>
-            </tr>
-          ))}
+                  {safeId && safeId !== String(currentUserId ?? '') && (
+                    <button
+                      onClick={() => safeId && onDelete(safeId)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

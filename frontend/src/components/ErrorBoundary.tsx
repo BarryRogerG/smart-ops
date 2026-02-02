@@ -59,6 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   handleGoHome = () => {
     // Force full page reload to clear any crashed JavaScript state
+    // This is the only way to fully clear corrupted React state
     window.location.href = '/dashboard';
   };
 
