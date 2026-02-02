@@ -45,13 +45,20 @@ export function Users() {
           // Password is optional - backend auto-generates if not provided
         });
         
-        // In showcase mode, add to mock data if user is guest
+        // Show success toast
+        toast.success('User successfully created!');
+        
+        // Clear form and hide it immediately
+        setIsCreating(false);
+        setEditingUser(null);
+        
+        // Ensure refetch happens (already done in createUser, but double-check)
+        await loadUsers();
+        
+        // In showcase mode, log for debugging
         if (currentUser?.id === 'guest' && newUser) {
-          // Mock data is already updated via loadUsers, but we ensure it's in state
           console.log('[Showcase Mode] New user created:', newUser);
         }
-        
-        toast.success('User successfully created!');
       } else if (editingUser) {
         await updateUser(editingUser.id, {
           name: formData.name,
@@ -60,12 +67,15 @@ export function Users() {
           password: formData.password || undefined,
         });
         toast.success('User updated successfully');
+        
+        // Clear form and hide it
+        setIsCreating(false);
+        setEditingUser(null);
       }
-      setIsCreating(false);
-      setEditingUser(null);
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
       toast.error(err.response?.data?.error || `Failed to ${isCreating ? 'create' : 'update'} user`);
+      // Don't clear form on error - let user fix and retry
     } finally {
       setIsSubmitting(false);
     }

@@ -18,9 +18,9 @@ interface UserFormProps {
 export function UserForm({ initialData, isCreating, isLoading = false, onSubmit, onCancel }: UserFormProps) {
   // Initialize form data from initialData or empty values
   const [formData, setFormData] = useState(() => ({
-    name: initialData?.name || '',
-    email: initialData?.email || '',
-    role: (initialData?.role || 'user') as UserRole,
+    name: '',
+    email: '',
+    role: 'user' as UserRole,
     password: '',
   }));
 
@@ -38,6 +38,7 @@ export function UserForm({ initialData, isCreating, isLoading = false, onSubmit,
       prevInitialDataId.current = currentId;
       
       if (initialData) {
+        // Editing mode - populate with user data
         setFormData({
           name: initialData.name,
           email: initialData.email,
@@ -45,6 +46,7 @@ export function UserForm({ initialData, isCreating, isLoading = false, onSubmit,
           password: '',
         });
       } else if (isCreating) {
+        // Creating mode - reset to empty
         setFormData({
           name: '',
           email: '',
@@ -52,6 +54,17 @@ export function UserForm({ initialData, isCreating, isLoading = false, onSubmit,
           password: '',
         });
       }
+    }
+    
+    // Reset form when switching to create mode
+    if (isCreating && !initialData && prevInitialDataId.current !== undefined) {
+      setFormData({
+        name: '',
+        email: '',
+        role: 'user',
+        password: '',
+      });
+      prevInitialDataId.current = undefined;
     }
   }, [initialData, isCreating]);
 

@@ -25,7 +25,9 @@ export function useUsers() {
     try {
       const data = await usersService.getAll();
       // Ensure data is an array, fallback to mock data
-      setUsers(Array.isArray(data) && data.length > 0 ? data : MOCK_USERS);
+      const userList = Array.isArray(data) && data.length > 0 ? data : MOCK_USERS;
+      setUsers(userList);
+      return userList;
     } catch (error) {
       console.error('Failed to load users:', error);
       // Use mock data on error for showcase mode
@@ -38,18 +40,48 @@ export function useUsers() {
 
   // Create user via admin endpoint (password auto-generated if not provided)
   const createUser = useCallback(async (userData: CreateUserData) => {
-    const newUser = await usersService.create({
+    // Optimistic update: Add temporary user to state immediately
+    const tempUser: User = {
+      id: `temp-${Date.now()}`,
       name: userData.name,
       email: userData.email,
       role: userData.role,
-      // Password is optional - backend will auto-generate if not provided
-      ...(userData.password && { password: userData.password }),
+      createdAt: new Date().toISOString(),
+    };
+    
+    // Add to state immediately for instant UI update
+    setUsers((prevUsers) => {
+      // Avoid duplicates
+      const exists = prevUsers.some(u => u.email === userData.email);
+      if (exists) return prevUsers;
+      return [...prevUsers, tempUser];
     });
     
-    // Refetch users list to show the new user immediately
-    await loadUsers();
-    
-    return newUser;
+    try {
+      const newUser = await usersService.create({
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        // Password is optional - backend will auto-generate if not provided
+        ...(userData.password && { password: userData.password }),
+      });
+      
+      // Replace temp user with real user from server
+      setUsers((prevUsers) => {
+        return prevUsers.map(u => u.id === tempUser.id ? newUser : u);
+      });
+      
+      // Refetch users list to ensure we have the latest data
+      await loadUsers();
+      
+      return newUser;
+    } catch (error) {
+      // On error, remove the optimistic update
+      setUsers((prevUsers) => {
+        return prevUsers.filter(u => u.id !== tempUser.id);
+      });
+      throw error;
+    }
   }, [loadUsers]);
 
 // 2. Cleaner Update
