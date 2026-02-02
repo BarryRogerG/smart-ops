@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { usersService } from '../services/users';
-import api from '../utils/api';
 import { User, UserRole } from '../types';
 import { MOCK_USERS } from '../data/mockData';
 
@@ -39,7 +38,7 @@ export function useUsers() {
 
   // Create user via admin endpoint (password auto-generated if not provided)
   const createUser = useCallback(async (userData: CreateUserData) => {
-    const response = await api.post<{ user: User }>('/users', {
+    const newUser = await usersService.create({
       name: userData.name,
       email: userData.email,
       role: userData.role,
@@ -50,7 +49,7 @@ export function useUsers() {
     // Refetch users list to show the new user immediately
     await loadUsers();
     
-    return response.data.user;
+    return newUser;
   }, [loadUsers]);
 
 // 2. Cleaner Update
