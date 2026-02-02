@@ -27,6 +27,8 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist # The specific key for static sites in a Blueprint
+    # Render automatically handles SPA routing for static sites via _redirects file
+    # The _redirects file in public/ will be copied to dist/ during build
     envVars:
       - key: VITE_API_URL
         fromService:

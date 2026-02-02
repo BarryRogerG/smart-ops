@@ -108,7 +108,7 @@ function AppRoutes() {
 function App() {
   return (
     <ErrorBoundary>
-      <Router>
+      <Router basename="/">
         <AuthProvider>
           <ErrorBoundary>
             <AppRoutes />
