@@ -11,15 +11,18 @@ import { Button } from '../components/Button';
 import { toast } from 'react-hot-toast';
 
 export function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    // Wait for auth to finish loading before fetching dashboard
+    if (!authLoading) {
+      loadDashboard();
+    }
+  }, [authLoading]);
 
   const loadDashboard = async () => {
     try {
@@ -80,10 +83,15 @@ export function Dashboard() {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <Layout>
-        <div>Loading dashboard...</div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-lg text-gray-600 mb-2">Loading dashboard...</div>
+            <div className="text-sm text-gray-500">Please wait while we fetch your data</div>
+          </div>
+        </div>
       </Layout>
     );
   }
