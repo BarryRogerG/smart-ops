@@ -46,8 +46,9 @@ export function Signup() {
       
       toast.success('Account created successfully!');
       navigate('/dashboard');
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Registration failed. Please try again.';
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      const errorMessage = error?.response?.data?.error || error?.message || 'Registration failed. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

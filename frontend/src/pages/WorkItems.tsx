@@ -70,6 +70,7 @@ export function WorkItems() {
   // Load work items when filters change
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const loadData = async () => {
@@ -83,9 +84,11 @@ export function WorkItems() {
         ...(filters.projectId && { projectId: filters.projectId }),
       });
       setWorkItems(items);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load work items:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to load work items';
+      const errorMessage = (error as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error || 
+                          (error as { message?: string })?.message || 
+                          'Failed to load work items';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

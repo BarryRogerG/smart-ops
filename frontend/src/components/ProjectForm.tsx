@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Project } from '../types';
 import { Button } from './Button';
 
@@ -14,23 +14,36 @@ interface ProjectFormProps {
 }
 
 export function ProjectForm({ initialData, isCreating, isLoading = false, onSubmit, onCancel }: ProjectFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-  });
+  // Initialize form data from initialData or empty values
+  const [formData, setFormData] = useState(() => ({
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+  }));
 
-  // Initialize form data when initialData changes
+  // Track the previous initialData ID to avoid unnecessary updates
+  const prevInitialDataId = useRef<string | undefined>(initialData?.id);
+
+  // Update form data when initialData changes
+  // Note: Using setState in effect is necessary here to sync form with prop changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name,
-        description: initialData.description || '',
-      });
-    } else if (isCreating) {
-      setFormData({
-        name: '',
-        description: '',
-      });
+    const currentId = initialData?.id;
+    
+    // Only update if the ID actually changed
+    if (prevInitialDataId.current !== currentId) {
+      prevInitialDataId.current = currentId;
+      
+      if (initialData) {
+        setFormData({
+          name: initialData.name,
+          description: initialData.description || '',
+        });
+      } else if (isCreating) {
+        setFormData({
+          name: '',
+          description: '',
+        });
+      }
     }
   }, [initialData, isCreating]);
 

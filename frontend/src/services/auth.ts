@@ -31,14 +31,15 @@ export const authService = {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string; code?: string; response?: { status?: number; data?: unknown } };
       console.error('authService.login API error:', error);
       console.error('Error details:', {
-        message: error?.message,
-        code: error?.code,
-        response: error?.response,
-        status: error?.response?.status,
-        data: error?.response?.data,
+        message: err?.message,
+        code: err?.code,
+        response: err?.response,
+        status: err?.response?.status,
+        data: err?.response?.data,
       });
       throw error;
     }

@@ -42,6 +42,8 @@ export function WorkItemForm({
   });
 
   // Initialize form data when initialData changes
+  // Note: Using setState in effect is necessary here to sync form with prop changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setFormData({
       title: initialData.title,

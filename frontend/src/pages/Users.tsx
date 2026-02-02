@@ -55,8 +55,9 @@ export function Users() {
       }
       setIsCreating(false);
       setEditingUser(null);
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || `Failed to ${isCreating ? 'create' : 'update'} user`);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || `Failed to ${isCreating ? 'create' : 'update'} user`);
     } finally {
       setIsSubmitting(false);
     }
@@ -73,8 +74,9 @@ export function Users() {
     try {
       await handleDelete(userId);
       toast.success('User deleted successfully');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to delete user');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || 'Failed to delete user');
     }
   };
 

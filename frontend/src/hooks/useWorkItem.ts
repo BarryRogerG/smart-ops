@@ -65,23 +65,15 @@ export function useWorkItem(id: string | undefined) {
   const handleSubmit = useCallback(async (formData: WorkItemFormData) => {
     if (!id) return;
 
-    try {
-      const updated = await workItemsService.update(id, formData);
-      setWorkItem(updated);
-      return updated;
-    } catch (error: any) {
-      throw error;
-    }
+    const updated = await workItemsService.update(id, formData);
+    setWorkItem(updated);
+    return updated;
   }, [id]);
 
   const handleDelete = useCallback(async () => {
     if (!id) return;
 
-    try {
-      await workItemsService.delete(id);
-    } catch (error: any) {
-      throw error;
-    }
+    await workItemsService.delete(id);
   }, [id]);
 
   return {

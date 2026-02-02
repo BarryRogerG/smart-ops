@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { Button } from './Button';
 
@@ -16,29 +16,42 @@ interface UserFormProps {
 }
 
 export function UserForm({ initialData, isCreating, isLoading = false, onSubmit, onCancel }: UserFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'user' as UserRole,
+  // Initialize form data from initialData or empty values
+  const [formData, setFormData] = useState(() => ({
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    role: (initialData?.role || 'user') as UserRole,
     password: '',
-  });
+  }));
 
-  // Initialize form data when initialData changes
+  // Track the previous initialData ID to avoid unnecessary updates
+  const prevInitialDataId = useRef<string | undefined>(initialData?.id);
+
+  // Update form data when initialData changes
+  // Note: Using setState in effect is necessary here to sync form with prop changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name,
-        email: initialData.email,
-        role: initialData.role,
-        password: '',
-      });
-    } else if (isCreating) {
-      setFormData({
-        name: '',
-        email: '',
-        role: 'user',
-        password: '',
-      });
+    const currentId = initialData?.id;
+    
+    // Only update if the ID actually changed
+    if (prevInitialDataId.current !== currentId) {
+      prevInitialDataId.current = currentId;
+      
+      if (initialData) {
+        setFormData({
+          name: initialData.name,
+          email: initialData.email,
+          role: initialData.role,
+          password: '',
+        });
+      } else if (isCreating) {
+        setFormData({
+          name: '',
+          email: '',
+          role: 'user',
+          password: '',
+        });
+      }
     }
   }, [initialData, isCreating]);
 

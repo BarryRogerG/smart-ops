@@ -42,8 +42,9 @@ export function WorkItemDetail() {
       setIsEditing(false);
       // Refresh activity logs after update
       setRefreshActivity(prev => prev + 1);
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update work item');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || 'Failed to update work item');
     } finally {
       setIsSubmitting(false);
     }
@@ -60,8 +61,9 @@ export function WorkItemDetail() {
       await handleDeleteHook();
       toast.success('Work item deleted');
       navigate('/work-items');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to delete work item');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || 'Failed to delete work item');
     }
   };
 
