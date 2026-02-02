@@ -6,6 +6,7 @@ import { User } from '../types';
 import { Layout } from '../components/Layout';
 import { UserTable } from '../components/UserTable';
 import { UserForm } from '../components/UserForm';
+import { MOCK_USERS } from '../data/mockData';
 
 export function Users() {
   const { user: currentUser } = useAuth();
@@ -88,8 +89,8 @@ export function Users() {
     );
   }
 
-  // Ensure users is always an array, default to empty array if undefined
-  const safeUsers = Array.isArray(users) ? users : [];
+  // Universal data guard with optional chaining and nullish coalescing
+  const safeUsers = (users ?? []) || MOCK_USERS;
 
   return (
     <Layout>

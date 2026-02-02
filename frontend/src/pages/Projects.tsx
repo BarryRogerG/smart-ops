@@ -5,6 +5,7 @@ import { Project } from '../types';
 import { Layout } from '../components/Layout';
 import { ProjectTable } from '../components/ProjectTable';
 import { ProjectForm } from '../components/ProjectForm';
+import { MOCK_PROJECTS } from '../data/mockData';
 
 export function Projects() {
   const { projects, isLoading, loadProjects, createProject, updateProject, deleteProject } = useProjects();
@@ -78,8 +79,8 @@ export function Projects() {
     );
   }
 
-  // Ensure projects is always an array
-  const safeProjects = Array.isArray(projects) ? projects : [];
+  // Universal data guard with optional chaining and nullish coalescing
+  const safeProjects = (projects ?? []) || MOCK_PROJECTS;
 
   return (
     <Layout>

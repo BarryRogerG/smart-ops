@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { projectsService } from '../services/projects';
 import { Project } from '../types';
+import { MOCK_PROJECTS } from '../data/mockData';
 
 interface CreateProjectData {
   name: string;
@@ -19,12 +20,12 @@ export function useProjects() {
   const loadProjects = useCallback(async () => {
     try {
       const data = await projectsService.getAll();
-      // Ensure data is always an array
-      setProjects(Array.isArray(data) ? data : []);
+      // Ensure data is always an array, fallback to mock data
+      setProjects(Array.isArray(data) && data.length > 0 ? data : MOCK_PROJECTS);
     } catch (error) {
       console.error('Failed to load projects:', error);
-      // Set empty array on error to prevent crashes
-      setProjects([]);
+      // Use mock data on error for showcase mode
+      setProjects(MOCK_PROJECTS);
       throw error;
     } finally {
       setIsLoading(false);

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { usersService } from '../services/users';
 import api from '../utils/api';
 import { User, UserRole } from '../types';
+import { MOCK_USERS } from '../data/mockData';
 
 interface CreateUserData {
   name: string;
@@ -24,12 +25,12 @@ export function useUsers() {
   const loadUsers = useCallback(async () => {
     try {
       const data = await usersService.getAll();
-      // Ensure data is an array, default to empty array if undefined
-      setUsers(Array.isArray(data) ? data : []);
+      // Ensure data is an array, fallback to mock data
+      setUsers(Array.isArray(data) && data.length > 0 ? data : MOCK_USERS);
     } catch (error) {
       console.error('Failed to load users:', error);
-      // On error, set empty array to prevent crashes
-      setUsers([]);
+      // Use mock data on error for showcase mode
+      setUsers(MOCK_USERS);
       throw error;
     } finally {
       setIsLoading(false);

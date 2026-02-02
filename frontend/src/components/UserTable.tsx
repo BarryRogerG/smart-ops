@@ -8,10 +8,10 @@ interface UserTableProps {
 }
 
 export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableProps) {
-  // Ensure users is an array, default to empty array
-  const safeUsers = Array.isArray(users) ? users : [];
+  // Universal data guard with optional chaining and nullish coalescing
+  const safeUsers = (users ?? []) || [];
 
-  if (safeUsers.length === 0) {
+  if ((safeUsers?.length ?? 0) === 0) {
     return (
       <div className="bg-white shadow rounded-lg p-8 text-center">
         <p className="text-gray-500">No users found</p>
@@ -42,38 +42,38 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {safeUsers.map((user) => (
-            <tr key={user.id} className="hover:bg-gray-50">
+          {(safeUsers || []).map((user) => (
+            <tr key={user?.id ?? ''} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {user.name}
+                {user?.name ?? 'Unknown'}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user?.email ?? 'No email'}</td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-2 py-1 text-xs font-semibold rounded ${
-                    user.role === 'admin'
+                    user?.role === 'admin'
                       ? 'bg-red-100 text-red-800'
-                      : user.role === 'manager'
+                      : user?.role === 'manager'
                       ? 'bg-blue-100 text-blue-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}
                 >
-                  {user.role}
+                  {user?.role ?? 'user'}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <button
-                  onClick={() => onEdit(user)}
+                  onClick={() => user && onEdit(user)}
                   className="text-indigo-600 hover:text-indigo-800 mr-4"
                 >
                   Edit
                 </button>
-                {user.id !== currentUserId && (
+                {user?.id && user.id !== currentUserId && (
                   <button
-                    onClick={() => onDelete(user.id)}
+                    onClick={() => user?.id && onDelete(user.id)}
                     className="text-red-600 hover:text-red-800"
                   >
                     Delete

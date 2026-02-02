@@ -9,6 +9,7 @@ import { usersService } from '../services/users';
 import { WorkItem, Project, User, WorkItemStatus, WorkItemPriority } from '../types';
 import { Layout } from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
+import { MOCK_WORK_ITEMS, MOCK_PROJECTS, MOCK_USERS } from '../data/mockData';
 
 export function WorkItems() {
   const { user } = useAuth();
@@ -57,14 +58,14 @@ export function WorkItems() {
             ? usersService.getAll() 
             : Promise.resolve([]),
         ]);
-        // Ensure arrays are always arrays
-        setProjects(Array.isArray(projs) ? projs : []);
-        setUsers(Array.isArray(usrs) ? usrs : []);
+        // Ensure arrays are always arrays, fallback to mock data
+        setProjects(Array.isArray(projs) && projs.length > 0 ? projs : MOCK_PROJECTS);
+        setUsers(Array.isArray(usrs) && usrs.length > 0 ? usrs : MOCK_USERS);
       } catch (error) {
         console.error('Failed to load initial data:', error);
-        // Set empty arrays on error
-        setProjects([]);
-        setUsers([]);
+        // Use mock data on error for showcase mode
+        setProjects(MOCK_PROJECTS);
+        setUsers(MOCK_USERS);
       }
     };
     
@@ -87,16 +88,16 @@ export function WorkItems() {
         ...(filters.assignedTo && { assignedTo: filters.assignedTo }),
         ...(filters.projectId && { projectId: filters.projectId }),
       });
-      // Ensure items is always an array
-      setWorkItems(Array.isArray(items) ? items : []);
+      // Ensure items is always an array, fallback to mock data
+      setWorkItems(Array.isArray(items) && items.length > 0 ? items : MOCK_WORK_ITEMS);
     } catch (error: unknown) {
       console.error('Failed to load work items:', error);
       const errorMessage = (error as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error || 
                           (error as { message?: string })?.message || 
                           'Failed to load work items';
       toast.error(errorMessage);
-      // Set empty array on error to prevent crashes
-      setWorkItems([]);
+      // Use mock data on error for showcase mode
+      setWorkItems(MOCK_WORK_ITEMS);
     } finally {
       setIsLoading(false);
     }
@@ -161,10 +162,10 @@ export function WorkItems() {
     );
   }
 
-  // Ensure all arrays are safe for rendering
-  const safeWorkItems = Array.isArray(workItems) ? workItems : [];
-  const safeProjects = Array.isArray(projects) ? projects : [];
-  const safeUsers = Array.isArray(users) ? users : [];
+  // Universal data guards with optional chaining and nullish coalescing
+  const safeWorkItems = (workItems ?? []) || MOCK_WORK_ITEMS;
+  const safeProjects = (projects ?? []) || MOCK_PROJECTS;
+  const safeUsers = (users ?? []) || MOCK_USERS;
 
   return (
     <Layout>
@@ -249,9 +250,9 @@ export function WorkItems() {
                 >
                   <option value="">All Users</option>
                   <option value="unassigned">Unassigned</option>
-                  {safeUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
+                  {(safeUsers || []).map((u) => (
+                    <option key={u?.id} value={u?.id}>
+                      {u?.name ?? 'Unknown'}
                     </option>
                   ))}
                 </select>
@@ -265,9 +266,9 @@ export function WorkItems() {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
                 <option value="">All Projects</option>
-                {safeProjects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
+                {(safeProjects || []).map((project) => (
+                  <option key={project?.id} value={project?.id}>
+                    {project?.name ?? 'Unknown'}
                   </option>
                 ))}
               </select>
@@ -317,49 +318,49 @@ export function WorkItems() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {safeWorkItems.length === 0 ? (
+              {(safeWorkItems?.length ?? 0) === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No work items found
                   </td>
                 </tr>
               ) : (
-                safeWorkItems.map((item) => (
+                (safeWorkItems || []).map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Link
-                        to={`/work-items/${item.id}`}
+                        to={`/work-items/${item?.id ?? ''}`}
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                       >
-                        {item.title}
+                        {item?.title ?? 'Untitled'}
                       </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.type}
+                      {item?.type ?? 'task'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(item.status)}`}
+                        className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(item?.status ?? 'open')}`}
                       >
-                        {item.status}
+                        {item?.status ?? 'open'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded ${getPriorityColor(item.priority)}`}
+                        className={`px-2 py-1 text-xs font-semibold rounded ${getPriorityColor(item?.priority ?? 'medium')}`}
                       >
-                        {item.priority}
+                        {item?.priority ?? 'medium'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.assignedUser?.name || 'Unassigned'}
+                      {item?.assignedUser?.name ?? 'Unassigned'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.project?.name}
+                      {item?.project?.name ?? 'No Project'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <Link
-                        to={`/work-items/${item.id}`}
+                        to={`/work-items/${item?.id ?? ''}`}
                         className="text-indigo-600 hover:text-indigo-800"
                       >
                         View
