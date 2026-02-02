@@ -1,9 +1,149 @@
 import api from '../utils/api';
 import { DashboardData } from '../types';
 
+// Fallback sample data for showcase mode when backend is down
+const FALLBACK_DASHBOARD_DATA: DashboardData = {
+  openItems: [
+    {
+      id: 'sample-1',
+      title: 'Implement User Authentication',
+      description: 'Set up secure login and registration system',
+      type: 'task',
+      status: 'in_progress',
+      priority: 'high',
+      assignedTo: 'guest',
+      projectId: 'sample-project-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      assignedUser: {
+        id: 'guest',
+        name: 'Showcase Admin',
+        email: 'guest@smartops.com',
+      },
+      project: {
+        id: 'sample-project-1',
+        name: 'Core Features',
+      },
+    },
+    {
+      id: 'sample-2',
+      title: 'Design Dashboard UI',
+      description: 'Create responsive dashboard with work item overview',
+      type: 'task',
+      status: 'open',
+      priority: 'medium',
+      assignedTo: 'guest',
+      projectId: 'sample-project-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      assignedUser: {
+        id: 'guest',
+        name: 'Showcase Admin',
+        email: 'guest@smartops.com',
+      },
+      project: {
+        id: 'sample-project-1',
+        name: 'Core Features',
+      },
+    },
+    {
+      id: 'sample-3',
+      title: 'Add Activity Logging',
+      description: 'Track all changes to work items for audit trail',
+      type: 'feature',
+      status: 'open',
+      priority: 'medium',
+      assignedTo: 'guest',
+      projectId: 'sample-project-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      assignedUser: {
+        id: 'guest',
+        name: 'Showcase Admin',
+        email: 'guest@smartops.com',
+      },
+      project: {
+        id: 'sample-project-1',
+        name: 'Core Features',
+      },
+    },
+  ],
+  highPriorityItems: [
+    {
+      id: 'sample-1',
+      title: 'Implement User Authentication',
+      description: 'Set up secure login and registration system',
+      type: 'task',
+      status: 'in_progress',
+      priority: 'high',
+      assignedTo: 'guest',
+      projectId: 'sample-project-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      assignedUser: {
+        id: 'guest',
+        name: 'Showcase Admin',
+        email: 'guest@smartops.com',
+      },
+      project: {
+        id: 'sample-project-1',
+        name: 'Core Features',
+      },
+    },
+  ],
+  onHoldItems: [
+    {
+      id: 'sample-4',
+      title: 'Mobile App Development',
+      description: 'Native mobile app for iOS and Android',
+      type: 'feature',
+      status: 'on_hold',
+      priority: 'low',
+      assignedTo: 'guest',
+      projectId: 'sample-project-2',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      assignedUser: {
+        id: 'guest',
+        name: 'Showcase Admin',
+        email: 'guest@smartops.com',
+      },
+      project: {
+        id: 'sample-project-2',
+        name: 'Future Features',
+      },
+    },
+  ],
+  itemsPerUser: [
+    {
+      user: {
+        id: 'guest',
+        name: 'Showcase Admin',
+        email: 'guest@smartops.com',
+      },
+      itemCount: 4,
+    },
+  ],
+};
+
 export const dashboardService = {
   async getDashboardData(): Promise<DashboardData> {
-    const response = await api.get<DashboardData>('/dashboard');
-    return response.data;
+    try {
+      const response = await api.get<DashboardData>('/dashboard');
+      return response.data;
+    } catch (error: any) {
+      // If backend is down (404, 500, network error), return fallback data for showcase
+      if (
+        error.response?.status === 404 ||
+        error.response?.status === 500 ||
+        error.response?.status === 503 ||
+        !error.response
+      ) {
+        console.warn('[Dashboard] Backend unavailable, using fallback data:', error.response?.status || 'network error');
+        return FALLBACK_DASHBOARD_DATA;
+      }
+      // Re-throw other errors (401, 403, etc.)
+      throw error;
+    }
   },
 };

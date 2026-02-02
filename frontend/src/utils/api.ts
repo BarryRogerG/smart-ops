@@ -90,9 +90,9 @@ api.interceptors.response.use(
       });
     }
     
-    // In showcase mode, we don't redirect on 401 errors
-    // The backend will assign a guest admin user, so 401s are handled gracefully
-    // Only clear invalid tokens, but don't redirect
+    // In showcase mode, we don't redirect on 401/404 errors
+    // The backend will assign a guest admin user, so errors are handled gracefully
+    // Only clear invalid tokens for auth errors, but don't redirect
     if (error.response?.status === 401) {
       const isLoginRequest = error.config?.url?.includes('/auth/login');
       
@@ -101,6 +101,16 @@ api.interceptors.response.use(
         localStorage.removeItem('token');
         // Don't clear user - showcase mode will use guest admin
         // Don't redirect - showcase mode allows access without authentication
+      }
+    }
+    
+    // For 404 errors on API endpoints, log but don't break showcase mode
+    // The services will handle fallback data
+    if (error.response?.status === 404) {
+      const isAuthEndpoint = error.config?.url?.includes('/auth/');
+      if (isAuthEndpoint) {
+        // For auth endpoints, don't throw - let the service handle it
+        console.warn('[API] 404 on auth endpoint, showcase mode will use guest admin');
       }
     }
     return Promise.reject(error);

@@ -42,9 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(currentUser);
             localStorage.setItem('user', JSON.stringify(currentUser));
           } catch (error: any) {
-            // Token is invalid or expired - fall back to guest admin for showcase mode
-            console.log('Token validation failed, using guest admin:', error.response?.status);
-            authService.logout();
+            // Token is invalid, expired, or backend is down (404/500)
+            // Fall back to guest admin for showcase mode
+            const status = error.response?.status;
+            console.log('Token validation failed, using guest admin:', status || 'network error');
+            
+            // Only clear storage if it's an auth error (401, 403), not if backend is down
+            if (status === 401 || status === 403) {
+              authService.logout();
+            }
             setUser(GUEST_ADMIN_USER);
           }
         } else {
