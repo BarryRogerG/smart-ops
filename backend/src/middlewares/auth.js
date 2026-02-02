@@ -4,10 +4,11 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Guest user configuration for public showcase mode
+// This matches the frontend guest user for consistency
 const GUEST_USER_CONFIG = {
-  email: 'guest@smartops.demo',
+  email: 'guest@smartops.com',
   role: 'admin',
-  name: 'Guest Admin',
+  name: 'Showcase Admin',
 };
 
 // Ensure guest user exists in database (for foreign key constraints)
