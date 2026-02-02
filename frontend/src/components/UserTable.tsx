@@ -7,51 +7,24 @@ interface UserTableProps {
   currentUserId?: string;
 }
 
-// Bulletproof data extraction: handles nested objects and ensures string output
-function extractStringValue(value: unknown, fallback: string = ''): string {
-  if (value === null || value === undefined) {
-    return fallback;
-  }
-  
-  // If it's already a string, return it
-  if (typeof value === 'string') {
-    return value;
-  }
-  
-  // If it's a number, convert to string
-  if (typeof value === 'number') {
-    return String(value);
-  }
-  
-  // If it's an object, try to extract nested values
-  if (typeof value === 'object') {
-    // Try common nested object patterns
-    if ('label' in value && typeof value.label === 'string') {
-      return value.label;
-    }
-    if ('value' in value && typeof value.value === 'string') {
-      return value.value;
-    }
-    if ('name' in value && typeof value.name === 'string') {
-      return value.name;
-    }
-    if ('text' in value && typeof value.text === 'string') {
-      return value.text;
-    }
-    // Last resort: JSON stringify (but limit length)
-    try {
-      const str = JSON.stringify(value);
-      return str.length > 50 ? str.substring(0, 50) + '...' : str;
-    } catch {
-      return fallback;
-    }
-  }
-  
-  // Fallback: convert to string
-  return String(value);
-}
-
 export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableProps) {
+  // Nuclear Sanitization: Convert ANY value to a safe string for rendering
+  const safeRender = (val: unknown): string => {
+    if (val === null || val === undefined) {
+      return '';
+    }
+    // If it's an object, JSON stringify it (handles nested objects)
+    if (typeof val === 'object') {
+      try {
+        return JSON.stringify(val);
+      } catch {
+        return '[Object]';
+      }
+    }
+    // Otherwise, convert to string
+    return String(val ?? '');
+  };
+
   // Universal data guard with optional chaining and nullish coalescing
   const safeUsers = (users ?? []) || [];
 
@@ -87,53 +60,42 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {(safeUsers || []).map((user, index) => {
-            // Bulletproof data extraction with object guards
-            const rawName = user?.name;
-            const rawEmail = user?.email;
-            const rawRole = user?.role;
-            const rawId = user?.id;
-            const rawCreatedAt = user?.createdAt;
-            
-            // Extract string values (handles nested objects)
-            const safeName = extractStringValue(rawName, 'Unknown');
-            const safeEmail = extractStringValue(rawEmail, 'No email');
-            const safeRole = extractStringValue(rawRole, 'user');
-            const safeId = extractStringValue(rawId, `temp-${index}`);
-            
-            // Ensure all are strings (double safety)
-            const finalName = String(safeName || '');
-            const finalEmail = String(safeEmail || '');
-            const finalRole = String(safeRole || 'user');
-            const finalId = String(safeId || user?.email || `user-${index}`);
+            // Nuclear sanitization: wrap every field in safeRender
+            const safeName = safeRender(user?.name);
+            const safeEmail = safeRender(user?.email);
+            const safeRole = safeRender(user?.role);
+            const safeId = safeRender(user?.id || user?.email || `user-${index}`);
             
             // Safe date formatting
             let safeCreatedDate = '-';
-            if (rawCreatedAt) {
+            if (user?.createdAt) {
               try {
-                const dateValue = typeof rawCreatedAt === 'string' ? rawCreatedAt : String(rawCreatedAt);
-                safeCreatedDate = new Date(dateValue).toLocaleDateString();
+                const dateValue = safeRender(user.createdAt);
+                if (dateValue && dateValue !== '-') {
+                  safeCreatedDate = new Date(dateValue).toLocaleDateString();
+                }
               } catch {
                 safeCreatedDate = '-';
               }
             }
             
             return (
-              <tr key={finalId} className="hover:bg-gray-50">
+              <tr key={safeId} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {finalName}
+                  {safeName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{finalEmail}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{safeEmail}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`px-2 py-1 text-xs font-semibold rounded ${
-                      finalRole === 'admin'
+                      safeRole === 'admin' || safeRole === '"admin"' || safeRole.includes('admin')
                         ? 'bg-red-100 text-red-800'
-                        : finalRole === 'manager'
+                        : safeRole === 'manager' || safeRole === '"manager"' || safeRole.includes('manager')
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {finalRole}
+                    {safeRole}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -146,9 +108,9 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
                   >
                     Edit
                   </button>
-                  {finalId && finalId !== String(currentUserId || '') && (
+                  {safeId && safeId !== safeRender(currentUserId) && (
                     <button
-                      onClick={() => finalId && onDelete(finalId)}
+                      onClick={() => safeId && onDelete(safeId)}
                       className="text-red-600 hover:text-red-800"
                     >
                       Delete
