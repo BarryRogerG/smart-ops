@@ -88,6 +88,9 @@ export function Users() {
     );
   }
 
+  // Ensure users is always an array, default to empty array if undefined
+  const safeUsers = Array.isArray(users) ? users : [];
+
   return (
     <Layout>
       <div className="px-4 py-6 sm:px-0">
@@ -114,7 +117,7 @@ export function Users() {
         )}
 
         <UserTable
-          users={users}
+          users={safeUsers}
           onEdit={onEditClick}
           onDelete={onDeleteClick}
           currentUserId={currentUser?.id}

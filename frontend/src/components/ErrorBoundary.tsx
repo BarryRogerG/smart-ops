@@ -1,6 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface Props {
   children: ReactNode;
@@ -47,11 +46,20 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = () => {
+    // Reset error state
     this.setState({
       hasError: false,
       error: null,
       errorInfo: null,
     });
+    
+    // Force navigation to dashboard with full page reload to clear crashed state
+    window.location.href = '/dashboard';
+  };
+
+  handleGoHome = () => {
+    // Force full page reload to clear any crashed JavaScript state
+    window.location.href = '/dashboard';
   };
 
   render() {
@@ -105,13 +113,13 @@ export class ErrorBoundary extends Component<Props, State> {
                 Try Again
               </button>
               
-              <Link
-                to="/dashboard"
+              <button
+                onClick={this.handleGoHome}
                 className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors"
               >
                 <Home className="h-4 w-4" />
                 Go Home
-              </Link>
+              </button>
             </div>
           </div>
         </div>

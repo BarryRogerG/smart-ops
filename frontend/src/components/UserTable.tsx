@@ -8,6 +8,17 @@ interface UserTableProps {
 }
 
 export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableProps) {
+  // Ensure users is an array, default to empty array
+  const safeUsers = Array.isArray(users) ? users : [];
+
+  if (safeUsers.length === 0) {
+    return (
+      <div className="bg-white shadow rounded-lg p-8 text-center">
+        <p className="text-gray-500">No users found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
@@ -31,7 +42,7 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {users.map((user) => (
+          {safeUsers.map((user) => (
             <tr key={user.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {user.name}

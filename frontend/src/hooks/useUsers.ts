@@ -24,9 +24,12 @@ export function useUsers() {
   const loadUsers = useCallback(async () => {
     try {
       const data = await usersService.getAll();
-      setUsers(data);
+      // Ensure data is an array, default to empty array if undefined
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load users:', error);
+      // On error, set empty array to prevent crashes
+      setUsers([]);
       throw error;
     } finally {
       setIsLoading(false);
