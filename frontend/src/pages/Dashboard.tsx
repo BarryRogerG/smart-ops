@@ -105,10 +105,21 @@ export function Dashboard() {
   }
 
   const isAdmin = user?.role === 'admin';
+  const isGuestUser = user?.email === 'guest@smartops.com' || user?.id === 'guest';
 
   return (
     <Layout>
       <div className="px-4 py-6 sm:px-0">
+        {/* Showcase Mode Banner */}
+        {isGuestUser && (
+          <div className="mb-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-lg shadow-md flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              <span className="font-semibold">Showcase Mode: Full Admin Access Enabled</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">
             {user?.role === 'user' ? 'My Work' : 'Team Overview'}

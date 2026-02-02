@@ -13,6 +13,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Guest Admin user for public showcase mode
+const GUEST_ADMIN_USER: User = {
+  id: 'guest',
+  name: 'Showcase Admin',
+  email: 'guest@smartops.com',
+  role: 'admin',
+  createdAt: new Date().toISOString(),
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storedUser = authService.getStoredUser();
         const token = authService.getToken();
         
-        // Only verify token if we have both user and token
+        // If we have both user and token, verify token is still valid
         if (storedUser && token) {
           setUser(storedUser);
           // Verify token is still valid by calling /auth/me
@@ -33,16 +42,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(currentUser);
             localStorage.setItem('user', JSON.stringify(currentUser));
           } catch (error: any) {
-            // Token is invalid or expired - clear auth state
-            console.log('Token validation failed, clearing auth state:', error.response?.status);
+            // Token is invalid or expired - fall back to guest admin for showcase mode
+            console.log('Token validation failed, using guest admin:', error.response?.status);
             authService.logout();
-            setUser(null);
+            setUser(GUEST_ADMIN_USER);
           }
+        } else {
+          // No token found - use guest admin for showcase mode
+          console.log('[Showcase Mode] No token found - using guest admin');
+          setUser(GUEST_ADMIN_USER);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
-        authService.logout();
-        setUser(null);
+        console.error('Error initializing auth, using guest admin:', error);
+        // On any error, use guest admin for showcase mode
+        setUser(GUEST_ADMIN_USER);
       } finally {
         setIsLoading(false);
       }
@@ -76,7 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     authService.logout();
-    setUser(null);
+    // In showcase mode, logout returns to guest admin instead of null
+    setUser(GUEST_ADMIN_USER);
   };
 
   // Development-only: Toggle role between 'admin' and 'user'

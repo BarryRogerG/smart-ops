@@ -14,8 +14,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <div>Loading...</div>;
   }
 
+  // In showcase mode, we always have a user (guest admin if not authenticated)
+  // So we don't redirect to login anymore
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // This shouldn't happen in showcase mode, but keep as fallback
+    return <div>Loading user...</div>;
   }
 
   if (requiredRole) {

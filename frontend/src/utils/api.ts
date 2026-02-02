@@ -90,16 +90,17 @@ api.interceptors.response.use(
       });
     }
     
-    // Only redirect on 401 if we're NOT on the login page and it's NOT a login request
+    // In showcase mode, we don't redirect on 401 errors
+    // The backend will assign a guest admin user, so 401s are handled gracefully
+    // Only clear invalid tokens, but don't redirect
     if (error.response?.status === 401) {
       const isLoginRequest = error.config?.url?.includes('/auth/login');
-      const isOnLoginPage = window.location.pathname === '/login';
       
-      // Don't redirect if it's a login request or we're already on login page
-      if (!isLoginRequest && !isOnLoginPage) {
+      // Only clear tokens for non-login requests (login requests handle their own errors)
+      if (!isLoginRequest) {
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Don't clear user - showcase mode will use guest admin
+        // Don't redirect - showcase mode allows access without authentication
       }
     }
     return Promise.reject(error);

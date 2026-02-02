@@ -8,7 +8,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    // In showcase mode, logout returns to guest admin - stay on dashboard
+    navigate('/dashboard');
   };
 
   return (
