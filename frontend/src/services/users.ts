@@ -19,6 +19,11 @@ export const usersService = {
     return response.data.user;
   },
 
+  async create(data: { name: string; email: string; role: string; password?: string }): Promise<User> {
+    const response = await api.post<{ user: User }>('/users', data);
+    return response.data.user;
+  },
+
   async update(id: string, data: UpdateUserData): Promise<User> {
     const response = await api.put<{ user: User }>(`/users/${id}`, data);
     return response.data.user;

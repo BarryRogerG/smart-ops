@@ -33,18 +33,25 @@ export function Users() {
     name: string;
     email: string;
     role: string;
-    password: string;
+    password?: string;
   }) => {
     setIsSubmitting(true);
     try {
       if (isCreating) {
-        await createUser({
+        const newUser = await createUser({
           name: formData.name,
           email: formData.email,
-          password: formData.password,
           role: formData.role as 'user' | 'manager' | 'admin',
+          // Password is optional - backend auto-generates if not provided
         });
-        toast.success('User created successfully');
+        
+        // In showcase mode, add to mock data if user is guest
+        if (currentUser?.id === 'guest' && newUser) {
+          // Mock data is already updated via loadUsers, but we ensure it's in state
+          console.log('[Showcase Mode] New user created:', newUser);
+        }
+        
+        toast.success('User successfully created!');
       } else if (editingUser) {
         await updateUser(editingUser.id, {
           name: formData.name,

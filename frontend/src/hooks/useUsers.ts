@@ -7,7 +7,7 @@ import { MOCK_USERS } from '../data/mockData';
 interface CreateUserData {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role: UserRole;
 }
 
@@ -37,21 +37,21 @@ export function useUsers() {
     }
   }, []);
 
-  const handleCreate = useCallback(async (userData: CreateUserData) => {
-    await api.post('/auth/register', {
+  // Create user via admin endpoint (password auto-generated if not provided)
+  const createUser = useCallback(async (userData: CreateUserData) => {
+    const response = await api.post<{ user: User }>('/users', {
       name: userData.name,
       email: userData.email,
-      password: userData.password,
       role: userData.role,
+      // Password is optional - backend will auto-generate if not provided
+      ...(userData.password && { password: userData.password }),
     });
+    
+    // Refetch users list to show the new user immediately
     await loadUsers();
+    
+    return response.data.user;
   }, [loadUsers]);
-
-  // 1. Cleaner Create
-const createUser = useCallback(async (userData: CreateUserData) => {
-  await api.post('/auth/register', userData);
-  await loadUsers();
-}, [loadUsers]);
 
 // 2. Cleaner Update
 const updateUser = useCallback(async (userId: string, userData: UpdateUserData) => {
@@ -72,7 +72,6 @@ const updateUser = useCallback(async (userId: string, userData: UpdateUserData) 
     users,
     isLoading,
     loadUsers,
-    handleCreate,
     createUser,
     updateUser,
     handleDelete,

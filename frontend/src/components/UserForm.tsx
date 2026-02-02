@@ -10,7 +10,7 @@ interface UserFormProps {
     name: string;
     email: string;
     role: UserRole;
-    password: string;
+    password?: string;
   }) => void;
   onCancel: () => void;
 }
@@ -108,18 +108,19 @@ export function UserForm({ initialData, isCreating, isLoading = false, onSubmit,
             <option value="admin">Admin</option>
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {isCreating ? 'Password' : 'New Password (leave blank to keep current)'}
-          </label>
-          <input
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-            required={isCreating}
-          />
-        </div>
+        {!isCreating && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Password (leave blank to keep current)
+            </label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+            />
+          </div>
+        )}
         <div className="flex gap-4">
           <Button
             type="submit"

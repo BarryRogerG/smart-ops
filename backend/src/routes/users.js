@@ -2,9 +2,63 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate, authorize } = require('../middlewares/auth');
 const { hashPassword } = require('../utils/bcrypt');
+const crypto = require('crypto');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Generate a random password for new users
+function generateRandomPassword() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// Create user (admin only)
+router.post('/', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, email, role } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Auto-generate random password if not provided
+    const password = req.body.password || generateRandomPassword();
+    const passwordHash = await hashPassword(password);
+
+    // Validate role
+    const userRole = role && ['user', 'manager', 'admin'].includes(role) ? role : 'user';
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role: userRole,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    res.status(201).json({ user });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
 
 // Get all users (admin only)
 router.get('/', authenticate, authorize('admin'), async (req, res) => {
