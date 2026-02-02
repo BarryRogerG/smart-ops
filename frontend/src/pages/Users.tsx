@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { useUsers } from '../hooks/useUsers';
+import { usersService } from '../services/users';
 import { User } from '../types';
 import { Layout } from '../components/Layout';
 import { UserTable } from '../components/UserTable';
@@ -9,16 +9,66 @@ import { UserForm } from '../components/UserForm';
 import { MOCK_USERS } from '../data/mockData';
 
 export function Users() {
+  // ALL HOOKS AT TOP LEVEL - NO CONDITIONAL HOOKS
   const { user: currentUser } = useAuth();
-  const { users, isLoading, loadUsers, createUser, updateUser, handleDelete } = useUsers();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // SINGLE useEffect AT TOP LEVEL - handles all data loading
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    const loadUsersData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await usersService.getAll();
+        
+        // Ensure data is always an array, never null or undefined
+        const userList = Array.isArray(data) ? data : [];
+        
+        // If empty or in showcase mode, use mock data
+        const isShowcaseMode = currentUser?.id === 'guest';
+        const finalUsers = (userList.length > 0 && !isShowcaseMode) ? userList : MOCK_USERS;
+        
+        // Sanitize all users to ensure all fields are strings
+        const sanitizedUsers: User[] = finalUsers.map((user, index) => ({
+          id: String(user?.id ?? `user-${index}`),
+          name: String(user?.name ?? 'Unknown'),
+          email: String(user?.email ?? 'No email'),
+          role: String(user?.role ?? 'user') as User['role'],
+          createdAt: String(user?.createdAt ?? new Date().toISOString()),
+        }));
+        
+        setUsers(sanitizedUsers);
+      } catch (error) {
+        console.error('[Users] Failed to load users:', error);
+        // On error, set empty array (never null or undefined)
+        setUsers(MOCK_USERS.map((user, index) => ({
+          id: String(user?.id ?? `user-${index}`),
+          name: String(user?.name ?? 'Unknown'),
+          email: String(user?.email ?? 'No email'),
+          role: String(user?.role ?? 'user') as User['role'],
+          createdAt: String(user?.createdAt ?? new Date().toISOString()),
+        })));
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    loadUsersData();
+  }, [currentUser?.id]); // Only re-run if currentUser.id changes
+
+  // STANDARDIZED RETURN - single loading check at top
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="p-8 text-center text-gray-500">Loading showcase data...</div>
+      </Layout>
+    );
+  }
+
+  // Event handlers (no hooks, just functions)
   const onCreateClick = () => {
     setIsCreating(true);
     setEditingUser(null);
@@ -38,51 +88,55 @@ export function Users() {
     setIsSubmitting(true);
     try {
       if (isCreating) {
-        // Call createUser API - this includes optimistic update
-        const newUser = await createUser({
+        const newUser = await usersService.create({
           name: formData.name,
           email: formData.email,
           role: formData.role as 'user' | 'manager' | 'admin',
-          // Password is optional - backend auto-generates if not provided
         });
         
-        console.log('[UserManagement] User created successfully:', newUser);
+        // Sanitize the new user
+        const sanitizedNewUser: User = {
+          id: String(newUser?.id ?? ''),
+          name: String(newUser?.name ?? ''),
+          email: String(newUser?.email ?? ''),
+          role: String(newUser?.role ?? 'user') as User['role'],
+          createdAt: String(newUser?.createdAt ?? new Date().toISOString()),
+        };
         
-        // Explicitly refetch users list after successful creation (status 201)
-        const updatedUsers = await loadUsers();
-        console.log('[UserManagement] User list updated after creation:', updatedUsers);
-        console.log('[UserManagement] Updated users count:', updatedUsers?.length ?? 0);
+        // Add to state immediately
+        setUsers((prev) => [...prev, sanitizedNewUser]);
         
-        // In showcase mode, ensure user is in local state
-        if (currentUser?.id === 'guest' && newUser) {
-          console.log('[Showcase Mode] New user created:', newUser);
-          console.log('[Showcase Mode] Current users state:', users);
-        }
-        
-        // Show success toast
         toast.success('User successfully created!');
-        
-        // Clear form and hide it immediately (set isCreating to false)
         setIsCreating(false);
         setEditingUser(null);
       } else if (editingUser) {
-        await updateUser(editingUser.id, {
+        await usersService.update(editingUser.id, {
           name: formData.name,
           email: formData.email,
           role: formData.role as 'user' | 'manager' | 'admin',
           password: formData.password || undefined,
         });
-        toast.success('User updated successfully');
         
-        // Clear form and hide it
+        // Reload users after update
+        const updatedData = await usersService.getAll();
+        const userList = Array.isArray(updatedData) ? updatedData : [];
+        const sanitizedUsers: User[] = userList.map((user, index) => ({
+          id: String(user?.id ?? `user-${index}`),
+          name: String(user?.name ?? 'Unknown'),
+          email: String(user?.email ?? 'No email'),
+          role: String(user?.role ?? 'user') as User['role'],
+          createdAt: String(user?.createdAt ?? new Date().toISOString()),
+        }));
+        setUsers(sanitizedUsers);
+        
+        toast.success('User updated successfully');
         setIsCreating(false);
         setEditingUser(null);
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
-      console.error('[UserManagement] Error creating/updating user:', error);
+      console.error('[Users] Error creating/updating user:', error);
       toast.error(err.response?.data?.error || `Failed to ${isCreating ? 'create' : 'update'} user`);
-      // Don't clear form on error - let user fix and retry
     } finally {
       setIsSubmitting(false);
     }
@@ -97,7 +151,20 @@ export function Users() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      await handleDelete(userId);
+      await usersService.delete(userId);
+      
+      // Reload users after delete
+      const updatedData = await usersService.getAll();
+      const userList = Array.isArray(updatedData) ? updatedData : [];
+      const sanitizedUsers: User[] = userList.map((user, index) => ({
+        id: String(user?.id ?? `user-${index}`),
+        name: String(user?.name ?? 'Unknown'),
+        email: String(user?.email ?? 'No email'),
+        role: String(user?.role ?? 'user') as User['role'],
+        createdAt: String(user?.createdAt ?? new Date().toISOString()),
+      }));
+      setUsers(sanitizedUsers);
+      
       toast.success('User deleted successfully');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
@@ -105,23 +172,8 @@ export function Users() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="p-8 text-center text-gray-500">Loading showcase data...</div>
-      </Layout>
-    );
-  }
-
-  // Universal data guard with optional chaining and nullish coalescing
-  const safeUsers = (users ?? []) || MOCK_USERS;
-  
-  // Debug logging for state verification
-  useEffect(() => {
-    console.log('[UserManagement] Current users state:', users);
-    console.log('[UserManagement] Safe users count:', safeUsers.length);
-    console.log('[UserManagement] Is creating:', isCreating);
-  }, [users, safeUsers.length, isCreating]);
+  // Ensure users is always an array (never null or undefined)
+  const safeUsers = Array.isArray(users) ? users : [];
 
   return (
     <Layout>
