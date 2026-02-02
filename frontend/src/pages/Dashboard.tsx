@@ -8,6 +8,7 @@ import { aiService } from '../services/ai';
 import { DashboardData, WorkItem } from '../types';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/Button';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
 
 export function Dashboard() {
@@ -86,12 +87,11 @@ export function Dashboard() {
   if (authLoading || isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-lg text-gray-600 mb-2">Loading dashboard...</div>
-            <div className="text-sm text-gray-500">Please wait while we fetch your data</div>
-          </div>
-        </div>
+        <LoadingSpinner
+          message="Waking up the SmartOps server..."
+          subMessage="Please wait a moment while we boot up the backend"
+          size="lg"
+        />
       </Layout>
     );
   }
