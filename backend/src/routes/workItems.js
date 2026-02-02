@@ -1,6 +1,8 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate, authorize } = require('../middlewares/auth');
+const { createActivityLog, logWorkItemChanges } = require('../utils/activityLog');
+const { asyncHandler, AppError } = require('../middlewares/errorHandler');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -8,7 +10,7 @@ const prisma = new PrismaClient();
 // Get all work items (filtered by role)
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { status, priority, assignedTo, projectId } = req.query;
+    const { status, priority, assignedTo, projectId, search } = req.query;
     
     const where = {};
     
@@ -20,8 +22,66 @@ router.get('/', authenticate, async (req, res) => {
     // Managers and admins see all items
     if (status) where.status = status;
     if (priority) where.priority = priority;
-    if (assignedTo) where.assignedTo = assignedTo;
+    if (assignedTo) {
+      // Handle "unassigned" special value
+      if (assignedTo === 'unassigned') {
+        where.assignedTo = null;
+      } else {
+        where.assignedTo = assignedTo;
+      }
+    }
     if (projectId) where.projectId = projectId;
+    
+    // Search by title or description (case-insensitive)
+    // Use AND to combine search with other filters
+    if (search && search.trim()) {
+      const searchConditions = {
+        OR: [
+          {
+            title: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+          {
+            description: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        ],
+      };
+      
+      // If there are other conditions, wrap everything in AND
+      if (Object.keys(where).length > 0) {
+        where.AND = [
+          { ...where },
+          searchConditions,
+        ];
+        // Remove the original where properties since they're now in AND[0]
+        Object.keys(where).forEach(key => {
+          if (key !== 'AND') delete where[key];
+        });
+        // Re-add the conditions to AND[0]
+        if (status) where.AND[0].status = status;
+        if (priority) where.AND[0].priority = priority;
+        if (assignedTo) {
+          if (assignedTo === 'unassigned') {
+            where.AND[0].assignedTo = null;
+          } else {
+            where.AND[0].assignedTo = assignedTo;
+          }
+        }
+        if (projectId) where.AND[0].projectId = projectId;
+        if (req.user.role === 'user') {
+          where.AND[0].assignedTo = req.user.id;
+        }
+        where.AND.push(searchConditions);
+      } else {
+        // No other conditions, just use OR directly
+        where.OR = searchConditions.OR;
+      }
+    }
 
     const workItems = await prisma.workItem.findMany({
       where,
@@ -147,6 +207,14 @@ router.post('/', authenticate, async (req, res) => {
       },
     });
 
+    // Log creation activity
+    await createActivityLog({
+      prisma,
+      workItemId: workItem.id,
+      userId: req.user.id,
+      action: 'created',
+    });
+
     res.status(201).json({ workItem });
   } catch (error) {
     console.error('Create work item error:', error);
@@ -202,6 +270,17 @@ router.put('/:id', authenticate, async (req, res) => {
           },
         },
       });
+
+      // Log status change
+      if (status && status !== existing.status) {
+        await logWorkItemChanges({
+          prisma,
+          oldItem: existing,
+          newItem: workItem,
+          userId: req.user.id,
+        });
+      }
+
       return res.json({ workItem });
     }
 
@@ -242,6 +321,14 @@ router.put('/:id', authenticate, async (req, res) => {
       },
     });
 
+    // Log all changes
+    await logWorkItemChanges({
+      prisma,
+      oldItem: existing,
+      newItem: workItem,
+      userId: req.user.id,
+    });
+
     res.json({ workItem });
   } catch (error) {
     console.error('Update work item error:', error);
@@ -252,6 +339,14 @@ router.put('/:id', authenticate, async (req, res) => {
 // Delete work item (admin only)
 router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
+    // Log deletion before deleting
+    await createActivityLog({
+      prisma,
+      workItemId: req.params.id,
+      userId: req.user.id,
+      action: 'deleted',
+    });
+
     const workItem = await prisma.workItem.delete({
       where: { id: req.params.id },
     });
@@ -260,6 +355,46 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   } catch (error) {
     console.error('Delete work item error:', error);
     res.status(500).json({ error: 'Failed to delete work item' });
+  }
+});
+
+// Get activity logs for a work item
+router.get('/:id/activity', authenticate, async (req, res) => {
+  try {
+    // Check if work item exists and user has access
+    const workItem = await prisma.workItem.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!workItem) {
+      return res.status(404).json({ error: 'Work item not found' });
+    }
+
+    // Regular users can only see their assigned items
+    if (req.user.role === 'user' && workItem.assignedTo !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const activityLogs = await prisma.activityLog.findMany({
+      where: { workItemId: req.params.id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.json({ activityLogs });
+  } catch (error) {
+    console.error('Get activity logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch activity logs' });
   }
 });
 

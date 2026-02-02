@@ -7,6 +7,7 @@ import { WorkItemType, WorkItemStatus, WorkItemPriority } from '../types';
 import { Layout } from '../components/Layout';
 import { WorkItemView } from '../components/WorkItemView';
 import { WorkItemForm } from '../components/WorkItemForm';
+import { ActivityHistory } from '../components/ActivityHistory';
 
 export function WorkItemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,8 @@ export function WorkItemDetail() {
   } = useWorkItem(id);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'activity'>('details');
+  const [refreshActivity, setRefreshActivity] = useState(0);
 
   const handleFormSubmit = async (formData: {
     title: string;
@@ -37,6 +40,8 @@ export function WorkItemDetail() {
       await handleSubmitHook(formData);
       toast.success('Work item updated');
       setIsEditing(false);
+      // Refresh activity logs after update
+      setRefreshActivity(prev => prev + 1);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update work item');
     } finally {
@@ -88,24 +93,59 @@ export function WorkItemDetail() {
           </Link>
         </div>
 
-        {!isEditing ? (
-          <WorkItemView
-            workItem={workItem}
-            canEdit={canEdit}
-            canDelete={canDelete}
-            onEdit={() => setIsEditing(true)}
-            onDelete={handleDelete}
-          />
-        ) : (
-          <WorkItemForm
-            initialData={workItem}
-            projects={projects}
-            users={users}
-            currentUserRole={user?.role}
-            isLoading={isSubmitting}
-            onSubmit={handleFormSubmit}
-            onCancel={handleFormCancel}
-          />
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'details'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Details
+            </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'activity'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Activity History
+            </button>
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'details' && (
+          <>
+            {!isEditing ? (
+              <WorkItemView
+                workItem={workItem}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                onEdit={() => setIsEditing(true)}
+                onDelete={handleDelete}
+              />
+            ) : (
+              <WorkItemForm
+                initialData={workItem}
+                projects={projects}
+                users={users}
+                currentUserRole={user?.role}
+                isLoading={isSubmitting}
+                onSubmit={handleFormSubmit}
+                onCancel={handleFormCancel}
+              />
+            )}
+          </>
+        )}
+
+        {activeTab === 'activity' && (
+          <ActivityHistory workItemId={workItem.id} refreshTrigger={refreshActivity} />
         )}
       </div>
     </Layout>

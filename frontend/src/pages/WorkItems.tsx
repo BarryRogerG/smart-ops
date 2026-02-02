@@ -1,44 +1,117 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import { Search, X } from 'lucide-react';
 
 import { workItemsService } from '../services/workItems';
 import { projectsService } from '../services/projects';
-import { WorkItem, Project, WorkItemStatus, WorkItemPriority } from '../types';
+import { usersService } from '../services/users';
+import { WorkItem, Project, User, WorkItemStatus, WorkItemPriority } from '../types';
 import { Layout } from '../components/Layout';
+import { useAuth } from '../contexts/AuthContext';
 
 export function WorkItems() {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    status: '' as WorkItemStatus | '',
-    priority: '' as WorkItemPriority | '',
-    projectId: '',
+  
+  // Initialize filters from URL params
+  const [filters, setFilters] = useState<{
+    search: string;
+    status: WorkItemStatus | '';
+    priority: WorkItemPriority | '';
+    assignedTo: string;
+    projectId: string;
+  }>({
+    search: searchParams.get('search') || '',
+    status: (searchParams.get('status') as WorkItemStatus) || '',
+    priority: (searchParams.get('priority') as WorkItemPriority) || '',
+    assignedTo: searchParams.get('assignedTo') || '',
+    projectId: searchParams.get('projectId') || '',
   });
 
+  // Update URL when filters change
+  const updateURL = useCallback((newFilters: typeof filters) => {
+    const params = new URLSearchParams();
+    
+    if (newFilters.search) params.set('search', newFilters.search);
+    if (newFilters.status) params.set('status', newFilters.status);
+    if (newFilters.priority) params.set('priority', newFilters.priority);
+    if (newFilters.assignedTo) params.set('assignedTo', newFilters.assignedTo);
+    if (newFilters.projectId) params.set('projectId', newFilters.projectId);
+    
+    setSearchParams(params, { replace: true });
+  }, [setSearchParams]);
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const [projs, usrs] = await Promise.all([
+          projectsService.getAll(),
+          (user?.role === 'admin' || user?.role === 'manager') 
+            ? usersService.getAll() 
+            : Promise.resolve([]),
+        ]);
+        setProjects(projs);
+        setUsers(usrs);
+      } catch (error) {
+        console.error('Failed to load initial data:', error);
+      }
+    };
+    
+    loadInitialData();
+  }, [user?.role]);
+
+  // Load work items when filters change
   useEffect(() => {
     loadData();
   }, [filters]);
 
   const loadData = async () => {
+    setIsLoading(true);
     try {
-      const [items, projs] = await Promise.all([
-        workItemsService.getAll({
-          ...(filters.status && { status: filters.status }),
-          ...(filters.priority && { priority: filters.priority }),
-          ...(filters.projectId && { projectId: filters.projectId }),
-        }),
-        projectsService.getAll(),
-      ]);
+      const items = await workItemsService.getAll({
+        ...(filters.search && { search: filters.search }),
+        ...(filters.status && { status: filters.status }),
+        ...(filters.priority && { priority: filters.priority }),
+        ...(filters.assignedTo && { assignedTo: filters.assignedTo }),
+        ...(filters.projectId && { projectId: filters.projectId }),
+      });
       setWorkItems(items);
-      setProjects(projs);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load work items:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to load work items';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleFilterChange = (key: keyof typeof filters, value: string) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    updateURL(newFilters);
+  };
+
+
+  const clearFilters = () => {
+    const emptyFilters: typeof filters = {
+      search: '',
+      status: '',
+      priority: '',
+      assignedTo: '',
+      projectId: '',
+    };
+    setFilters(emptyFilters);
+    updateURL(emptyFilters);
+  };
+
+  const hasActiveFilters = filters.search || filters.status || filters.priority || filters.assignedTo || filters.projectId;
 
   const getStatusColor = (status: WorkItemStatus) => {
     switch (status) {
@@ -91,17 +164,46 @@ export function WorkItems() {
           </Link>
         </div>
 
-        {/* Filters */}
+        {/* Search and Filters */}
         <div className="bg-white shadow rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by title or description..."
+                value={filters.search}
+                onChange={(e) => {
+                  setFilters({ ...filters, search: e.target.value });
+                }}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              {filters.search && (
+                <button
+                  onClick={() => {
+                    const newFilters = { ...filters, search: '' };
+                    setFilters(newFilters);
+                    updateURL(newFilters);
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Dropdowns */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select
                 value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value as WorkItemStatus | '' })}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
-                <option value="">All</option>
+                <option value="">All Statuses</option>
                 <option value="open">Open</option>
                 <option value="in_progress">In Progress</option>
                 <option value="on_hold">On Hold</option>
@@ -112,21 +214,39 @@ export function WorkItems() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
               <select
                 value={filters.priority}
-                onChange={(e) => setFilters({ ...filters, priority: e.target.value as WorkItemPriority | '' })}
+                onChange={(e) => handleFilterChange('priority', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
-                <option value="">All</option>
+                <option value="">All Priorities</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="critical">Critical</option>
               </select>
             </div>
+            {(user?.role === 'admin' || user?.role === 'manager') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
+                <select
+                  value={filters.assignedTo}
+                  onChange={(e) => handleFilterChange('assignedTo', e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                >
+                  <option value="">All Users</option>
+                  <option value="unassigned">Unassigned</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
               <select
                 value={filters.projectId}
-                onChange={(e) => setFilters({ ...filters, projectId: e.target.value })}
+                onChange={(e) => handleFilterChange('projectId', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
                 <option value="">All Projects</option>
@@ -138,6 +258,19 @@ export function WorkItems() {
               </select>
             </div>
           </div>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={clearFilters}
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+              >
+                <X className="h-4 w-4" />
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Work Items List */}

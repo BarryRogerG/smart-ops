@@ -37,6 +37,16 @@ enum WorkItemType {
   request
 }
 
+enum ActivityAction {
+  created
+  updated
+  status_changed
+  priority_changed
+  assigned
+  unassigned
+  deleted
+}
+
 model User {
   id           String    @id @default(uuid())
   name         String
@@ -49,6 +59,7 @@ model User {
   assignedWorkItems WorkItem[] @relation("AssignedTo")
   createdWorkItems  WorkItem[] @relation("CreatedBy")
   aiSummaries       AISummary[]
+  activityLogs      ActivityLog[]
   
   @@map("users")
 }
@@ -82,6 +93,7 @@ model WorkItem {
   assignedUser User?  @relation("AssignedTo", fields: [assignedTo], references: [id])
   creator      User   @relation("CreatedBy", fields: [createdBy], references: [id])
   project      Project @relation(fields: [projectId], references: [id])
+  activityLogs ActivityLog[]
   
   @@map("work_items")
 }
@@ -96,4 +108,24 @@ model AISummary {
   manager    User     @relation(fields: [createdFor], references: [id])
   
   @@map("ai_summaries")
+}
+
+model ActivityLog {
+  id          String        @id @default(uuid())
+  action      ActivityAction
+  fieldName   String?       @map("field_name")
+  oldValue    String?       @map("old_value")
+  newValue    String?       @map("new_value")
+  workItemId  String        @map("work_item_id")
+  userId      String        @map("user_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  
+  // Relations
+  workItem    WorkItem      @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id])
+  
+  @@map("activity_logs")
+  @@index([workItemId])
+  @@index([userId])
+  @@index([createdAt])
 }

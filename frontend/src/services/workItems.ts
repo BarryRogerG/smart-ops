@@ -26,6 +26,7 @@ export const workItemsService = {
     priority?: WorkItemPriority;
     assignedTo?: string;
     projectId?: string;
+    search?: string;
   }): Promise<WorkItem[]> {
     const response = await api.get<{ workItems: WorkItem[] }>('/work-items', {
       params: filters,

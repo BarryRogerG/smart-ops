@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Login() {
@@ -75,6 +76,7 @@ export function Login() {
       // Clear any persisted error on success
       sessionStorage.removeItem('loginError');
       sessionStorage.removeItem('loginErrorTimestamp');
+      toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err: any) {
       console.error('=== LOGIN ERROR CAUGHT ===');
@@ -85,6 +87,9 @@ export function Login() {
       
       const errorMessage = getLoginErrorMessage(err);
       console.log('Setting error message:', errorMessage);
+      
+      // Show toast notification
+      toast.error(errorMessage);
       
       // Set error immediately and persist to sessionStorage with timestamp
       setError(errorMessage);

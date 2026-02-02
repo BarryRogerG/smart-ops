@@ -4,7 +4,11 @@
   "description": "SmartOps Backend API",
   "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "echo 'No linting configured. Install eslint to enable linting.' && exit 0",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "prisma:generate": "prisma generate",
@@ -26,7 +30,10 @@
     "openai": "^4.104.0"
   },
   "devDependencies": {
+    "@vitest/ui": "^4.0.18",
     "nodemon": "^3.1.11",
-    "prisma": "^5.20.0"
+    "prisma": "^5.20.0",
+    "supertest": "^7.2.2",
+    "vitest": "^4.0.18"
   }
 }

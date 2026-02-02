@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { workItemsService } from '../services/workItems';
 import { projectsService } from '../services/projects';
@@ -48,15 +49,18 @@ export function CreateWorkItem() {
     e.preventDefault();
 
     if (!formData.projectId) {
-      alert('Please select a project');
+      toast.error('Please select a project');
       return;
     }
 
     try {
       const workItem = await workItemsService.create(formData);
+      toast.success('Work item created successfully!');
       navigate(`/work-items/${workItem.id}`);
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to create work item');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to create work item';
+      toast.error(errorMessage);
+      console.error('Failed to create work item:', error);
     }
   };
 

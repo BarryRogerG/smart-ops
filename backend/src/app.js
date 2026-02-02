@@ -6,6 +6,7 @@ const workItemRoutes = require('./routes/workItems');
 const projectRoutes = require('./routes/projects');
 const dashboardRoutes = require('./routes/dashboard');
 const aiRoutes = require('./routes/ai');
+const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 
@@ -51,12 +52,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'SmartOps API is running' });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-  });
-});
+// 404 handler for undefined routes (must be before error handler)
+app.use(notFoundHandler);
+
+// Centralized error handling middleware (must be last)
+app.use(errorHandler);
 
 module.exports = app;
