@@ -175,19 +175,80 @@ export function Dashboard() {
     }
   };
 
+  // Generate local AI-style summary from dashboard stats
+  const generateLocalSummary = (stats: DashboardData): string => {
+    const openCount = stats.openItems?.length || 0;
+    const highPriorityCount = stats.highPriorityItems?.length || 0;
+    const onHoldCount = stats.onHoldItems?.length || 0;
+    const totalUsers = stats.itemsPerUser?.length || 0;
+    
+    // Get top priority item title
+    const topPriorityItem = stats.highPriorityItems?.[0]?.title || 'general tasks';
+    const topUser = stats.itemsPerUser?.[0]?.user?.name || 'the team';
+    const topUserCount = stats.itemsPerUser?.[0]?.itemCount || 0;
+    
+    // Generate professional AI-style summary
+    let summary = `System Analysis: Team velocity is ${openCount > 5 ? 'high' : openCount > 2 ? 'stable' : 'moderate'} with ${openCount} active work item${openCount !== 1 ? 's' : ''}. `;
+    
+    if (highPriorityCount > 0) {
+      summary += `Focus should shift to the ${highPriorityCount} high-priority task${highPriorityCount !== 1 ? 's' : ''}${topPriorityItem !== 'general tasks' ? `, particularly "${topPriorityItem}"` : ''}. `;
+    }
+    
+    if (topUserCount > 0 && topUser !== 'the team') {
+      summary += `${topUser} is currently handling ${topUserCount} item${topUserCount !== 1 ? 's' : ''}, indicating ${topUserCount > 3 ? 'high' : 'balanced'} workload distribution.`;
+    } else {
+      summary += `Workload distribution appears balanced across ${totalUsers} active team member${totalUsers !== 1 ? 's' : ''}.`;
+    }
+    
+    if (onHoldCount > 0) {
+      summary += ` ${onHoldCount} item${onHoldCount !== 1 ? 's are' : ' is'} currently on hold and may require attention.`;
+    }
+    
+    return summary;
+  };
+
   const handleGenerate = async () => {
     if (user?.role !== 'manager' && user?.role !== 'admin') return;
 
     setIsGenerating(true);
+    
+    // Extract local context from current dashboard stats
+    const dashboardContext = `Dashboard Stats: ${openItems.length} open work items, ${highPriorityItems.length} high-priority issues, ${onHoldItems.length} items on hold, ${itemsPerUser.length} active team members.`;
+    
+    console.log('[Dashboard] Generating AI summary with context:', dashboardContext);
+    
+    const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
+    
     try {
-      const generatedSummary = await aiService.generateSummaryFromBackend();
-      setSummary(generatedSummary);
-    } catch (error: any) {
-      if (error.response?.status === 503) {
-        toast.error('AI service is not configured. The app works without AI.');
-      } else {
-        toast.error(error.response?.data?.error || 'Failed to generate summary');
+      // Try backend AI first (unless in showcase mode)
+      if (!isShowcaseMode) {
+        try {
+          // Send dashboard context to backend
+          const allWorkItems = [...openItems, ...highPriorityItems, ...onHoldItems];
+          const generatedSummary = await aiService.generateSummary(allWorkItems);
+          setSummary(generatedSummary);
+          return;
+        } catch (backendError: any) {
+          // If backend fails, fall through to local generation
+          console.warn('[Dashboard] Backend AI failed, using local generation:', backendError);
+          toast.error('AI service unavailable - generating local insights instead.', { duration: 3000 });
+        }
       }
+      
+      // Showcase mode or backend failed - use local generation
+      const localSummary = generateLocalSummary({
+        openItems,
+        highPriorityItems,
+        onHoldItems,
+        itemsPerUser,
+      });
+      
+      setSummary(localSummary);
+      console.log('[Dashboard] Generated local summary:', localSummary);
+      
+    } catch (error: any) {
+      console.error('[Dashboard] Failed to generate summary:', error);
+      toast.error('Failed to generate summary. Please try again.');
     } finally {
       setIsGenerating(false);
     }
