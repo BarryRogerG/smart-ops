@@ -83,7 +83,7 @@ export function Users() {
   if (isLoading) {
     return (
       <Layout>
-        <div>Loading users...</div>
+        <div className="p-8 text-center text-gray-500">Loading showcase data...</div>
       </Layout>
     );
   }

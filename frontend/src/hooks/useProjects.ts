@@ -19,9 +19,12 @@ export function useProjects() {
   const loadProjects = useCallback(async () => {
     try {
       const data = await projectsService.getAll();
-      setProjects(data);
+      // Ensure data is always an array
+      setProjects(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load projects:', error);
+      // Set empty array on error to prevent crashes
+      setProjects([]);
       throw error;
     } finally {
       setIsLoading(false);

@@ -7,6 +7,17 @@ interface ProjectTableProps {
 }
 
 export function ProjectTable({ projects, onEdit, onDelete }: ProjectTableProps) {
+  // Ensure projects is an array, default to empty array
+  const safeProjects = Array.isArray(projects) ? projects : [];
+
+  if (safeProjects.length === 0) {
+    return (
+      <div className="bg-white shadow rounded-lg p-8 text-center">
+        <p className="text-gray-500">No projects found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
@@ -27,7 +38,7 @@ export function ProjectTable({ projects, onEdit, onDelete }: ProjectTableProps) 
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {projects.map((project) => (
+          {safeProjects.map((project) => (
             <tr key={project.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {project.name}

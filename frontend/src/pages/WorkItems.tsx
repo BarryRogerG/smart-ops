@@ -57,10 +57,14 @@ export function WorkItems() {
             ? usersService.getAll() 
             : Promise.resolve([]),
         ]);
-        setProjects(projs);
-        setUsers(usrs);
+        // Ensure arrays are always arrays
+        setProjects(Array.isArray(projs) ? projs : []);
+        setUsers(Array.isArray(usrs) ? usrs : []);
       } catch (error) {
         console.error('Failed to load initial data:', error);
+        // Set empty arrays on error
+        setProjects([]);
+        setUsers([]);
       }
     };
     
@@ -83,13 +87,16 @@ export function WorkItems() {
         ...(filters.assignedTo && { assignedTo: filters.assignedTo }),
         ...(filters.projectId && { projectId: filters.projectId }),
       });
-      setWorkItems(items);
+      // Ensure items is always an array
+      setWorkItems(Array.isArray(items) ? items : []);
     } catch (error: unknown) {
       console.error('Failed to load work items:', error);
       const errorMessage = (error as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error || 
                           (error as { message?: string })?.message || 
                           'Failed to load work items';
       toast.error(errorMessage);
+      // Set empty array on error to prevent crashes
+      setWorkItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -149,10 +156,15 @@ export function WorkItems() {
   if (isLoading) {
     return (
       <Layout>
-        <div>Loading work items...</div>
+        <div className="p-8 text-center text-gray-500">Loading showcase data...</div>
       </Layout>
     );
   }
+
+  // Ensure all arrays are safe for rendering
+  const safeWorkItems = Array.isArray(workItems) ? workItems : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeUsers = Array.isArray(users) ? users : [];
 
   return (
     <Layout>
@@ -237,7 +249,7 @@ export function WorkItems() {
                 >
                   <option value="">All Users</option>
                   <option value="unassigned">Unassigned</option>
-                  {users.map((u) => (
+                  {safeUsers.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name}
                     </option>
@@ -253,7 +265,7 @@ export function WorkItems() {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
                 <option value="">All Projects</option>
-                {projects.map((project) => (
+                {safeProjects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
                   </option>
@@ -305,14 +317,14 @@ export function WorkItems() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {workItems.length === 0 ? (
+              {safeWorkItems.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No work items found
                   </td>
                 </tr>
               ) : (
-                workItems.map((item) => (
+                safeWorkItems.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Link

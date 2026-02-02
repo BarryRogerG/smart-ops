@@ -73,10 +73,13 @@ export function Projects() {
   if (isLoading) {
     return (
       <Layout>
-        <div>Loading projects...</div>
+        <div className="p-8 text-center text-gray-500">Loading showcase data...</div>
       </Layout>
     );
   }
+
+  // Ensure projects is always an array
+  const safeProjects = Array.isArray(projects) ? projects : [];
 
   return (
     <Layout>
@@ -104,7 +107,7 @@ export function Projects() {
         )}
 
         <ProjectTable
-          projects={projects}
+          projects={safeProjects}
           onEdit={onEditClick}
           onDelete={onDeleteClick}
         />
