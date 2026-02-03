@@ -50,6 +50,14 @@ export function Projects() {
   };
 
   const onEditClick = (project: Project) => {
+    // Fix the Trigger: Ensure the full project object is passed and has valid ID
+    if (!project || !project.id) {
+      console.error('Invalid project passed to edit:', project);
+      toast.error('Cannot edit: Invalid project data');
+      return;
+    }
+    
+    // Set the full project object into editing state
     setEditingProject(project);
     setIsCreating(false);
   };
@@ -125,6 +133,14 @@ export function Projects() {
         setIsCreating(false);
         setEditingProject(null);
       } else if (editingProject) {
+        // Fix the Trigger: Ensure editingProject has valid ID before proceeding
+        if (!editingProject || !editingProject.id) {
+          console.error('Invalid editing project:', editingProject);
+          toast.error('Cannot save: Invalid project data');
+          setIsSubmitting(false);
+          return;
+        }
+        
         // Fix handleSave (Edit Mode): Use .map() to find existing project by ID and replace it
         let updatedProject: Project;
         
@@ -146,27 +162,35 @@ export function Projects() {
           }
         }
         
-        // Validate the Updated Object: Ensure updatedProject has valid id
+        // Data Integrity Check: Validate at start - if updatedProject or updatedProject.id is missing, return early
         if (!updatedProject || !updatedProject.id) {
-          console.error('Invalid updated project:', updatedProject);
-          toast.error('Failed to update project: Invalid project data');
+          console.warn('Invalid updated project received:', updatedProject);
+          toast.error('Failed to update project: Invalid project data received');
+          setIsSubmitting(false);
           return;
         }
         
         console.log('Saving project:', updatedProject);
         
-        // Defensive Mapping: Add check to ensure project exists before accessing ID
+        // Clean the Array: Filter out any 'ghost' items before mapping
+        // Defensive Mapping Guard: Rewrite state update to be null-safe
         setProjects(prev => {
-          // Filter out any null/undefined values first
-          const cleanPrev = prev.filter(p => p != null && p.id != null);
+          // Clean the Array: Remove null/undefined items first
+          const cleanProjects = prev.filter(p => p !== null && p !== undefined && p.id != null);
           
-          // Defensive mapping: check p exists before accessing p.id
-          return cleanPrev.map(p => (p && p.id === updatedProject.id) ? updatedProject : p);
+          // Defensive Mapping Guard: Null-safe mapping with explicit checks
+          return cleanProjects.map(p => {
+            // Ensure p exists and has id before comparison
+            if (p && p.id && p.id === updatedProject.id) {
+              return updatedProject;
+            }
+            return p;
+          });
         });
         
         toast.success('Project updated successfully');
         
-        // UI Polish: Ensure isEditing is set to false and form is hidden
+        // UI Transition: Immediately set isEditing(false) and setEditingProject(null) to clear workspace
         setIsCreating(false);
         setEditingProject(null);
       }

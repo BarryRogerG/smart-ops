@@ -52,13 +52,27 @@ export function ProjectTable({ projects, onEdit, onDelete }: ProjectTableProps) 
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <div className="flex gap-3">
                   <button
-                    onClick={() => project && onEdit(project)}
+                    onClick={() => {
+                      // Fix the Trigger: Ensure full project object is passed with validation
+                      if (project && project.id) {
+                        onEdit(project);
+                      } else {
+                        console.error('Cannot edit: Invalid project object', project);
+                      }
+                    }}
                     className="inline-flex items-center justify-center space-x-2 w-20 py-2 text-sm font-semibold tracking-tight text-white bg-indigo-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                   >
                     <span>Edit</span>
                   </button>
                   <button
-                    onClick={() => project?.id && onDelete(project.id)}
+                    onClick={() => {
+                      // Defensive check before delete
+                      if (project && project.id) {
+                        onDelete(project.id);
+                      } else {
+                        console.error('Cannot delete: Invalid project object', project);
+                      }
+                    }}
                     className="inline-flex items-center justify-center space-x-2 w-20 py-2 text-sm font-semibold tracking-tight text-white bg-rose-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-rose-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                   >
                     <span>Delete</span>
