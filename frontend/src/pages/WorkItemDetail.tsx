@@ -278,19 +278,19 @@ export function WorkItemDetail() {
               </button>
             </nav>
 
-            {/* Action Buttons */}
+            {/* Action Buttons - Standard Size */}
             {canEdit && (
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 text-sm font-medium text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition-colors"
                 >
                   Edit
                 </button>
                 {canDelete && (
                   <button
                     onClick={handleDelete}
-                    className="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition-colors"
                   >
                     Delete
                   </button>
@@ -384,59 +384,78 @@ export function WorkItemDetail() {
                   </div>
                 </div>
 
-                {/* Sidebar Column - Optimized */}
+                {/* Sidebar Column - Professional Layout */}
                 <div className="space-y-4">
-                  {/* Metadata Grid (2 columns) */}
-                  <div className="bg-white shadow rounded-lg p-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Status */}
-                      <div>
-                        <h3 className="text-xs font-medium text-gray-500 mb-2">Status</h3>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(displayItem.status)}`}>
-                          {displayItem.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                      </div>
-
-                      {/* Priority */}
-                      <div>
-                        <h3 className="text-xs font-medium text-gray-500 mb-2">Priority</h3>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getPriorityColor(displayItem.priority)}`}>
-                          {displayItem.priority.charAt(0).toUpperCase() + displayItem.priority.slice(1)}
-                        </span>
-                      </div>
-
-                      {/* Type */}
-                      <div>
-                        <h3 className="text-xs font-medium text-gray-500 mb-2">Type</h3>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-                          {displayItem.type.charAt(0).toUpperCase() + displayItem.type.slice(1)}
-                        </span>
-                      </div>
-
-                      {/* Project */}
-                      <div>
-                        <h3 className="text-xs font-medium text-gray-500 mb-2">Project</h3>
-                        {displayItem.project ? (
-                          <p className="text-xs font-medium text-gray-900 truncate" title={displayItem.project.name}>
-                            {displayItem.project.name}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-gray-500 italic">No project</p>
-                        )}
-                      </div>
-                    </div>
+                  {/* Status Card */}
+                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Status</h3>
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${getStatusColor(displayItem.status)}`}>
+                      {displayItem.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
                   </div>
 
-                  {/* Assigned To - Compact (Final element) */}
-                  <div className="bg-white shadow rounded-lg p-4">
-                    <h3 className="text-xs font-medium text-gray-500 mb-2">Assigned To</h3>
-                    {displayItem.assignedUser ? (
-                      <div className="text-sm">
-                        <p className="font-medium text-gray-900">{displayItem.assignedUser.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{displayItem.assignedUser.email}</p>
+                  {/* Priority Card */}
+                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Priority</h3>
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${getPriorityColor(displayItem.priority)}`}>
+                      {displayItem.priority.charAt(0).toUpperCase() + displayItem.priority.slice(1)}
+                    </span>
+                  </div>
+
+                  {/* Type Card */}
+                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Type</h3>
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
+                      {displayItem.type.charAt(0).toUpperCase() + displayItem.type.slice(1)}
+                    </span>
+                  </div>
+
+                  {/* Project Card */}
+                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Project</h3>
+                    {displayItem.project ? (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 mb-1">{displayItem.project.name}</p>
+                        {displayItem.project.description && (
+                          <p className="text-xs text-gray-500 line-clamp-2">{displayItem.project.description}</p>
+                        )}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500 italic">Unassigned</p>
+                      <p className="text-sm text-gray-500 italic">No project</p>
+                    )}
+                  </div>
+
+                  {/* Assigned To Card - Enhanced with Avatar */}
+                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Assigned To</h3>
+                    {displayItem.assignedUser ? (
+                      <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        <div className="flex-shrink-0">
+                          <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <span className="text-indigo-600 font-semibold text-base">
+                              {getInitials(displayItem.assignedUser.name)}
+                            </span>
+                          </div>
+                        </div>
+                        {/* User Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 mb-1">{displayItem.assignedUser.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{displayItem.assignedUser.email}</p>
+                          {displayItem.assignedUser.role && (
+                            <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                              {displayItem.assignedUser.role.charAt(0).toUpperCase() + displayItem.assignedUser.role.slice(1)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                          <span className="text-gray-400 font-semibold text-base">—</span>
+                        </div>
+                        <p className="text-sm text-gray-500 italic">Unassigned</p>
+                      </div>
                     )}
                   </div>
                 </div>
