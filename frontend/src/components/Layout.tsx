@@ -36,11 +36,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </Link>
                 <Link
                   to="/projects"
-                  onClick={() => {
-                    // Reset Projects page state when navigating via nav bar
-                    // This ensures users always start fresh on the list view
-                    // Note: State reset is handled in Projects component via useEffect
-                  }}
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   Projects

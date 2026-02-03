@@ -12,7 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function Projects() {
   const { user } = useAuth();
-  const { projects, isLoading, loadProjects, createProject, updateProject, deleteProject } = useProjects();
+  const { projects: apiProjects, isLoading, loadProjects, createProject, updateProject, deleteProject } = useProjects();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,36 +20,27 @@ export function Projects() {
   // Check if we're in showcase mode
   const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
   
-  // State persistence: Manage projects list with useState (not static mock file)
-  // This ensures UI doesn't reset on re-renders
-  const [localProjects, setLocalProjects] = useState<Project[]>(() => {
-    // Initialize with mock data in showcase mode, empty array otherwise
-    // Use function initializer to prevent re-initialization on re-renders
+  // Initialize proper state: Use useState with mock data (not static import)
+  // This ensures UI doesn't reset on re-renders and changes persist
+  const [projects, setProjects] = useState<Project[]>(() => {
     return isShowcaseMode ? [...MOCK_PROJECTS] : [];
   });
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [hasSyncedWithAPI, setHasSyncedWithAPI] = useState(false);
 
   useEffect(() => {
     loadProjects();
-    // Reset form state when component mounts (e.g., navigating from nav bar)
+    // Navigation fix: Reset form state when component mounts (e.g., clicking 'Projects' in nav)
     setIsCreating(false);
     setEditingProject(null);
   }, [loadProjects]);
 
-  // Sync local state with projects from hook (only on initial load)
-  // This prevents overwriting local changes during updates
+  // Sync with API projects on initial load only
   useEffect(() => {
-    if (!hasInitialized) {
-      if (projects && projects.length > 0) {
-        setLocalProjects([...projects]);
-        setHasInitialized(true);
-      } else if (isShowcaseMode && localProjects.length === 0) {
-        // In showcase mode, use mock data if no projects from API and localProjects is empty
-        setLocalProjects([...MOCK_PROJECTS]);
-        setHasInitialized(true);
-      }
+    if (!hasSyncedWithAPI && apiProjects && apiProjects.length > 0) {
+      setProjects([...apiProjects]);
+      setHasSyncedWithAPI(true);
     }
-  }, [projects, isShowcaseMode, hasInitialized, localProjects.length]);
+  }, [apiProjects, hasSyncedWithAPI]);
 
   const onCreateClick = () => {
     setIsCreating(true);
@@ -74,8 +65,8 @@ export function Projects() {
     setIsSubmitting(true);
     try {
       if (isCreating) {
-        // Generate unique ID for showcase mode if backend doesn't provide one
-        const uniqueId = isShowcaseMode ? `project-${Date.now()}` : undefined;
+        // Fix handleSave (Create Mode): Generate unique ID
+        const uniqueId = `project-${Date.now()}`;
         
         let newProject: Project;
         try {
@@ -84,19 +75,17 @@ export function Projects() {
             description: formData.description?.trim() || undefined,
           });
           
-          // If backend didn't return an ID (showcase mode), generate one
-          if (isShowcaseMode && uniqueId && (!newProject.id || newProject.id === '')) {
+          // Ensure ID exists (for showcase mode)
+          if (!newProject.id || newProject.id === '') {
             newProject = {
               ...newProject,
               id: uniqueId,
-              name: formData.name.trim(),
-              description: formData.description?.trim(),
-              createdAt: new Date().toISOString(),
+              createdAt: newProject.createdAt || new Date().toISOString(),
             };
           }
         } catch (error) {
           // In showcase mode, create project locally if API fails
-          if (isShowcaseMode && uniqueId) {
+          if (isShowcaseMode) {
             newProject = {
               id: uniqueId,
               name: formData.name.trim(),
@@ -108,8 +97,8 @@ export function Projects() {
           }
         }
         
-        // Add to local state immediately (optimistic update)
-        setLocalProjects(prev => {
+        // Fix handleSave (Create Mode): Use setProjects([...projects, newProject])
+        setProjects(prev => {
           // Check if project already exists
           if (prev.some(p => p.id === newProject.id)) {
             return prev;
@@ -120,10 +109,11 @@ export function Projects() {
         
         toast.success('Project created successfully');
         
-        // Close form and reset: switch back to list view
+        // UI Cleanup: Set isCreating to false to return to clean list view
         setIsCreating(false);
         setEditingProject(null);
       } else if (editingProject) {
+        // Fix handleSave (Edit Mode): Use .map() to find existing project by ID and replace it
         let updatedProject: Project;
         
         try {
@@ -144,14 +134,14 @@ export function Projects() {
           }
         }
         
-        // Refactor: Use setLocalProjects with .map() to find and update specific project by ID
-        setLocalProjects(prev => 
+        // Fix handleSave (Edit Mode): Use .map() to find and replace by ID
+        setProjects(prev => 
           prev.map(p => p.id === updatedProject.id ? updatedProject : p)
         );
         
         toast.success('Project updated successfully');
         
-        // UI Feedback: Close form and reset - switch back to list view immediately
+        // UI Cleanup: Set isEditing to false to return to clean list view
         setIsCreating(false);
         setEditingProject(null);
       }
@@ -173,10 +163,8 @@ export function Projects() {
     try {
       await deleteProject(projectId);
       
-      // In showcase mode, remove from local state
-      if (isShowcaseMode) {
-        setLocalProjects(prev => prev.filter(p => p.id !== projectId));
-      }
+      // Remove from state immediately
+      setProjects(prev => prev.filter(p => p.id !== projectId));
       
       toast.success('Project deleted successfully');
     } catch (error: any) {
@@ -192,8 +180,8 @@ export function Projects() {
     );
   }
 
-  // Use local projects in showcase mode, otherwise use projects from hook
-  const safeProjects = isShowcaseMode ? localProjects : (projects ?? []) || MOCK_PROJECTS;
+  // Use projects state (initialized with useState)
+  const safeProjects = projects;
 
   return (
     <Layout>
@@ -234,6 +222,7 @@ export function Projects() {
             isLoading={isSubmitting}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
+            onBackToList={handleFormCancel}
           />
         )}
 

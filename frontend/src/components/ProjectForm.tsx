@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { Project } from '../types';
 import { Button } from './Button';
 
@@ -11,9 +13,10 @@ interface ProjectFormProps {
     description: string;
   }) => void;
   onCancel: () => void;
+  onBackToList?: () => void;
 }
 
-export function ProjectForm({ initialData, isCreating, isLoading = false, onSubmit, onCancel }: ProjectFormProps) {
+export function ProjectForm({ initialData, isCreating, isLoading = false, onSubmit, onCancel, onBackToList }: ProjectFormProps) {
   // Initialize form data from initialData or empty values
   const [formData, setFormData] = useState(() => ({
     name: initialData?.name || '',
@@ -91,7 +94,7 @@ export function ProjectForm({ initialData, isCreating, isLoading = false, onSubm
             rows={4}
           />
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <Button
             type="submit"
             variant="primary"
@@ -106,6 +109,20 @@ export function ProjectForm({ initialData, isCreating, isLoading = false, onSubm
           >
             Cancel
           </Button>
+          {/* Back to List button - matching Work Items style */}
+          {onBackToList && (
+            <Link
+              to="/projects"
+              onClick={(e) => {
+                e.preventDefault();
+                onBackToList();
+              }}
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium transition-colors ml-4"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to List
+            </Link>
+          )}
         </div>
       </form>
     </div>
