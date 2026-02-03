@@ -157,6 +157,31 @@ export function WorkItemDetail() {
       .slice(0, 2);
   };
 
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    } else if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -252,7 +277,7 @@ export function WorkItemDetail() {
         </div>
 
         {/* Sticky Header: Tabs + Action Buttons */}
-        <div className="mb-6 border-b border-gray-200 sticky top-0 bg-white z-20 pb-0">
+        <div className="mb-6 border-b-2 border-gray-200 sticky top-0 bg-white z-20 pb-0">
           <div className="flex justify-between items-center">
             {/* Tabs */}
             <nav className="-mb-px flex space-x-8">
@@ -283,14 +308,14 @@ export function WorkItemDetail() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="w-24 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-md hover:bg-blue-700 hover:shadow-md transition-all shadow-sm"
+                  className="w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 hover:shadow-md transition-all shadow-sm"
                 >
                   Edit
                 </button>
                 {canDelete && (
                   <button
                     onClick={handleDelete}
-                    className="w-24 py-2.5 text-sm font-bold text-white bg-red-600 rounded-md hover:bg-red-700 hover:shadow-md transition-all shadow-sm"
+                    className="w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 hover:shadow-md transition-all shadow-sm"
                   >
                     Delete
                   </button>
@@ -384,17 +409,17 @@ export function WorkItemDetail() {
                   </div>
                 </div>
 
-                {/* Sidebar Column - Consolidated "No-Scroll" Design */}
-                <div className="space-y-4 flex flex-col">
+                {/* Sidebar Column - Enterprise Design with Background Tint */}
+                <div className="space-y-4 flex flex-col bg-slate-50/50 rounded-lg p-4">
                   {/* Attributes Card - Single Consolidated Card */}
                   <div className="bg-white shadow rounded-lg p-5">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Attributes</h3>
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">Attributes</h3>
                     
                     {/* 2-Column Grid */}
                     <div className="grid grid-cols-2 gap-4">
                       {/* Row 1: Status */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">Status</label>
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Status</label>
                         <div>
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusColor(displayItem.status)}`}>
                             {displayItem.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -404,7 +429,7 @@ export function WorkItemDetail() {
 
                       {/* Row 1: Priority */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">Priority</label>
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Priority</label>
                         <div>
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getPriorityColor(displayItem.priority)}`}>
                             {displayItem.priority.charAt(0).toUpperCase() + displayItem.priority.slice(1)}
@@ -414,7 +439,7 @@ export function WorkItemDetail() {
 
                       {/* Row 2: Type */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">Type</label>
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Type</label>
                         <div>
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
                             {displayItem.type.charAt(0).toUpperCase() + displayItem.type.slice(1)}
@@ -424,7 +449,7 @@ export function WorkItemDetail() {
 
                       {/* Row 2: Project */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">Project</label>
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Project</label>
                         <div>
                           {displayItem.project ? (
                             <p className="text-xs font-medium text-gray-900 truncate" title={displayItem.project.name}>
@@ -440,7 +465,7 @@ export function WorkItemDetail() {
 
                   {/* Assigned To Card - Compact Horizontal Layout */}
                   <div className="bg-white shadow rounded-lg p-5">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 block">Assigned To</label>
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 block">Assigned To</label>
                     {displayItem.assignedUser ? (
                       <div className="flex items-center gap-3">
                         {/* Avatar */}
@@ -465,6 +490,35 @@ export function WorkItemDetail() {
                         <p className="text-sm text-gray-500 italic">Unassigned</p>
                       </div>
                     )}
+                  </div>
+
+                  {/* System Details Footer - Metadata Anchor */}
+                  <div className="bg-white shadow rounded-lg p-4">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 block">System Details</label>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500 font-medium">Created:</span>
+                        <span className="text-gray-900 font-semibold">
+                          {displayItem.createdAt
+                            ? new Date(displayItem.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500 font-medium">Last Updated:</span>
+                        <span className="text-gray-900 font-semibold">
+                          {displayItem.updatedAt
+                            ? formatTimeAgo(displayItem.updatedAt)
+                            : displayItem.createdAt
+                            ? formatTimeAgo(displayItem.createdAt)
+                            : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
