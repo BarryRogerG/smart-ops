@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkItem } from '../hooks/useWorkItem';
@@ -303,21 +303,23 @@ export function WorkItemDetail() {
               </button>
             </nav>
 
-            {/* Action Buttons - Enterprise Style */}
+            {/* Action Buttons - Refined Enterprise Style */}
             {canEdit && (
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 hover:shadow-md transition-all shadow-sm"
+                  className="inline-flex items-center justify-center space-x-2 w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-indigo-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  Edit
+                  <Pencil className="h-4 w-4" />
+                  <span>Edit</span>
                 </button>
                 {canDelete && (
                   <button
                     onClick={handleDelete}
-                    className="w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 hover:shadow-md transition-all shadow-sm"
+                    className="inline-flex items-center justify-center space-x-2 w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-rose-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-rose-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" />
+                    <span>Delete</span>
                   </button>
                 )}
               </div>
