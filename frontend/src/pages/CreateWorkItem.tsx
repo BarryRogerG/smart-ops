@@ -7,6 +7,7 @@ import { projectsService } from '../services/projects';
 import { usersService } from '../services/users';
 import { Project, User, WorkItemType, WorkItemPriority } from '../types';
 import { Layout } from '../components/Layout';
+import { MOCK_PROJECTS, MOCK_USERS } from '../data/mockData';
 
 export function CreateWorkItem() {
   const navigate = useNavigate();
@@ -28,18 +29,57 @@ export function CreateWorkItem() {
   }, []);
 
   const loadData = async () => {
+    const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
+    
     try {
-      const [projs, usrs] = await Promise.all([
-        projectsService.getAll(),
-        user?.role === 'admin' || user?.role === 'manager' ? usersService.getAll() : Promise.resolve([]),
-      ]);
-      setProjects(projs);
-      setUsers(usrs);
-      if (projs.length > 0 && !formData.projectId) {
-        setFormData((prev) => ({ ...prev, projectId: projs[0].id }));
+      let projs: Project[] = [];
+      let usrs: User[] = [];
+      
+      // In showcase mode, use mock data immediately
+      if (isShowcaseMode) {
+        projs = MOCK_PROJECTS;
+        usrs = MOCK_USERS;
+      } else {
+        // Try to fetch from API
+        try {
+          const [projsResult, usrsResult] = await Promise.all([
+            projectsService.getAll(),
+            user?.role === 'admin' || user?.role === 'manager' ? usersService.getAll() : Promise.resolve([]),
+          ]);
+          
+          // Ensure results are arrays
+          projs = Array.isArray(projsResult) ? projsResult : [];
+          usrs = Array.isArray(usrsResult) ? usrsResult : [];
+          
+          // Fallback to mock data if empty
+          if (projs.length === 0) {
+            projs = MOCK_PROJECTS;
+          }
+          if (usrs.length === 0 && (user?.role === 'admin' || user?.role === 'manager')) {
+            usrs = MOCK_USERS;
+          }
+        } catch (apiError) {
+          console.warn('[CreateWorkItem] API failed, using mock data:', apiError);
+          // Use mock data as fallback
+          projs = MOCK_PROJECTS;
+          usrs = MOCK_USERS;
+        }
+      }
+      
+      // Ensure arrays are set (never undefined)
+      setProjects(Array.isArray(projs) ? projs : []);
+      setUsers(Array.isArray(usrs) ? usrs : []);
+      
+      // Set default project if available
+      const safeProjs = Array.isArray(projs) ? projs : [];
+      if (safeProjs.length > 0 && !formData.projectId) {
+        setFormData((prev) => ({ ...prev, projectId: safeProjs[0]?.id || '' }));
       }
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('[CreateWorkItem] Failed to load data:', error);
+      // On any error, use mock data
+      setProjects(MOCK_PROJECTS);
+      setUsers(MOCK_USERS);
     } finally {
       setIsLoading(false);
     }
@@ -64,13 +104,20 @@ export function CreateWorkItem() {
     }
   };
 
-  if (isLoading) {
+  // Defensive check: Don't render form until data is loaded and confirmed to be arrays
+  if (isLoading || !Array.isArray(projects) || !Array.isArray(users)) {
     return (
       <Layout>
-        <div>Loading...</div>
+        <div className="px-4 py-6 sm:px-0">
+          <div className="p-8 text-center text-gray-500">Loading form data...</div>
+        </div>
       </Layout>
     );
   }
+
+  // Ensure arrays are safe (defensive programming)
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeUsers = Array.isArray(users) ? users : [];
 
   return (
     <Layout>
@@ -138,9 +185,9 @@ export function CreateWorkItem() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
                     <option value="">Unassigned</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
+                    {(safeUsers || []).map((u) => (
+                      <option key={u?.id || ''} value={u?.id || ''}>
+                        {u?.name || 'Unknown'}
                       </option>
                     ))}
                   </select>
@@ -156,9 +203,9 @@ export function CreateWorkItem() {
                   required
                 >
                   <option value="">Select a project</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
+                  {(safeProjects || []).map((project) => (
+                    <option key={project?.id || ''} value={project?.id || ''}>
+                      {project?.name || 'Unknown Project'}
                     </option>
                   ))}
                 </select>

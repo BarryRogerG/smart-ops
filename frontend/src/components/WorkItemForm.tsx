@@ -143,9 +143,9 @@ export function WorkItemForm({
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               >
                 <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
+                {(users || []).map((u) => (
+                  <option key={u?.id || ''} value={u?.id || ''}>
+                    {u?.name || 'Unknown'}
                   </option>
                 ))}
               </select>
@@ -160,9 +160,9 @@ export function WorkItemForm({
               className="w-full border border-gray-300 rounded-md px-3 py-2"
               disabled={currentUserRole === 'user'}
             >
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
+              {(projects || []).map((project) => (
+                <option key={project?.id || ''} value={project?.id || ''}>
+                  {project?.name || 'Unknown Project'}
                 </option>
               ))}
             </select>
