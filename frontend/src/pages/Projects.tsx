@@ -16,10 +16,12 @@ export function Projects() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localProjects, setLocalProjects] = useState<Project[]>([]);
-
+  
   // Check if we're in showcase mode
   const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
+  
+  // State persistence: Manage projects list with useState
+  const [localProjects, setLocalProjects] = useState<Project[]>(isShowcaseMode ? MOCK_PROJECTS : []);
 
   useEffect(() => {
     loadProjects();
@@ -33,6 +35,7 @@ export function Projects() {
     if (projects && projects.length > 0) {
       setLocalProjects(projects);
     } else if (isShowcaseMode) {
+      // In showcase mode, use mock data if no projects from API
       setLocalProjects(MOCK_PROJECTS);
     }
   }, [projects, isShowcaseMode]);
@@ -51,43 +54,81 @@ export function Projects() {
     name: string;
     description: string;
   }) => {
+    // Validation: Ensure Project Name is not empty
+    if (!formData.name || formData.name.trim() === '') {
+      toast.error('Project name is required');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (isCreating) {
-        const newProject = await createProject({
-          name: formData.name,
-          description: formData.description || undefined,
-        });
+        // Generate unique ID for showcase mode if backend doesn't provide one
+        const uniqueId = isShowcaseMode ? `project-${Date.now()}` : undefined;
         
-        // In showcase mode, add to local state if not already added
-        if (isShowcaseMode && newProject) {
-          setLocalProjects(prev => {
-            // Check if project already exists
-            if (prev.some(p => p.id === newProject.id)) {
-              return prev;
-            }
-            return [...prev, newProject];
+        let newProject: Project;
+        try {
+          newProject = await createProject({
+            name: formData.name.trim(),
+            description: formData.description?.trim() || undefined,
           });
+          
+          // If backend didn't return an ID (showcase mode), generate one
+          if (isShowcaseMode && uniqueId && (!newProject.id || newProject.id === '')) {
+            newProject = {
+              ...newProject,
+              id: uniqueId,
+              name: formData.name.trim(),
+              description: formData.description?.trim(),
+              createdAt: new Date().toISOString(),
+            };
+          }
+        } catch (error) {
+          // In showcase mode, create project locally if API fails
+          if (isShowcaseMode && uniqueId) {
+            newProject = {
+              id: uniqueId,
+              name: formData.name.trim(),
+              description: formData.description?.trim(),
+              createdAt: new Date().toISOString(),
+            };
+          } else {
+            throw error;
+          }
         }
+        
+        // Add to local state immediately (optimistic update)
+        setLocalProjects(prev => {
+          // Check if project already exists
+          if (prev.some(p => p.id === newProject.id)) {
+            return prev;
+          }
+          // Add to top of list
+          return [newProject, ...prev];
+        });
         
         toast.success('Project created successfully');
+        
+        // Close form and reset: switch back to list view
+        setIsCreating(false);
+        setEditingProject(null);
       } else if (editingProject) {
         const updatedProject = await updateProject(editingProject.id, {
-          name: formData.name,
-          description: formData.description || undefined,
+          name: formData.name.trim(),
+          description: formData.description?.trim() || undefined,
         });
         
-        // In showcase mode, update local state
-        if (isShowcaseMode && updatedProject) {
-          setLocalProjects(prev =>
-            prev.map(p => p.id === updatedProject.id ? updatedProject : p)
-          );
-        }
+        // Update local state immediately (optimistic update)
+        setLocalProjects(prev =>
+          prev.map(p => p.id === updatedProject.id ? updatedProject : p)
+        );
         
         toast.success('Project updated successfully');
+        
+        // Close form and reset: switch back to list view
+        setIsCreating(false);
+        setEditingProject(null);
       }
-      setIsCreating(false);
-      setEditingProject(null);
     } catch (error: any) {
       toast.error(error.response?.data?.error || `Failed to ${isCreating ? 'create' : 'update'} project`);
     } finally {

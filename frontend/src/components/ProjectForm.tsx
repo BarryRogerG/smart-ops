@@ -49,6 +49,12 @@ export function ProjectForm({ initialData, isCreating, isLoading = false, onSubm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation: Ensure Project Name is not empty
+    if (!formData.name || formData.name.trim() === '') {
+      return; // Let the parent component handle the error toast
+    }
+    
     onSubmit(formData);
   };
 
