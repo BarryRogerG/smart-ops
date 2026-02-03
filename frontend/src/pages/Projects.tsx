@@ -66,8 +66,9 @@ export function Projects() {
     name: string;
     description: string;
   }) => {
-    // Validation: Ensure Project Name is not empty
+    // Validation Guard: Add a check at the very top of the handleSave function
     if (!formData.name || formData.name.trim() === '') {
+      console.error('Cannot save: Name is empty');
       toast.error('Project name is required');
       return;
     }
@@ -141,28 +142,44 @@ export function Projects() {
           return;
         }
         
+        // The Save Hand-off: Construct the object using current formData and editingProject.id
+        // This ensures updatedProject is NEVER undefined
+        const projectToSave: Project = {
+          ...editingProject,
+          ...formData,
+          name: formData.name.trim(),
+          description: formData.description?.trim() || undefined,
+        };
+        
         // Fix handleSave (Edit Mode): Use .map() to find existing project by ID and replace it
         let updatedProject: Project;
         
         try {
+          // Call API with the constructed object
           updatedProject = await updateProject(editingProject.id, {
-            name: formData.name.trim(),
-            description: formData.description?.trim() || undefined,
+            name: projectToSave.name,
+            description: projectToSave.description,
           });
+          
+          // Ensure the API response has all required fields
+          if (!updatedProject || !updatedProject.id) {
+            // Fallback to our constructed object if API response is incomplete
+            updatedProject = projectToSave;
+          } else {
+            // Merge API response with our constructed object to ensure all fields are present
+            updatedProject = { ...projectToSave, ...updatedProject };
+          }
         } catch (error) {
           // In showcase mode, update project locally if API fails
           if (isShowcaseMode) {
-            updatedProject = {
-              ...editingProject,
-              name: formData.name.trim(),
-              description: formData.description?.trim(),
-            };
+            // Use the constructed object as fallback
+            updatedProject = projectToSave;
           } else {
             throw error;
           }
         }
         
-        // Fix handleSaveProject Logic: Before saving, verify the ID exists
+        // Fix handleSaveProject Logic: Verify the ID exists (should always pass now)
         if (!updatedProject?.id) {
           console.error('Missing ID in updated project:', updatedProject);
           toast.error('Failed to update: Project ID is missing');

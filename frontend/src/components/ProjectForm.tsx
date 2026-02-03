@@ -101,8 +101,9 @@ export function ProjectForm({ initialData, isCreating, isLoading = false, onSubm
             type="submit"
             variant="primary"
             isLoading={isLoading}
+            disabled={isLoading}
           >
-            Save
+            {isLoading ? 'Saving...' : 'Save'}
           </Button>
           <Button
             type="button"
