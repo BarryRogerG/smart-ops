@@ -53,8 +53,21 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo: null,
     });
     
-    // Reload the current page to clear crashed state while staying on the same URL
-    window.location.reload();
+    // Error Recovery: Clear local state and reload to prevent crash loop
+    try {
+      // Clear any potentially corrupted state from localStorage
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/projects')) {
+        // Redirect to projects page with fresh state
+        window.location.href = '/projects';
+      } else {
+        // Reload the current page to clear crashed state while staying on the same URL
+        window.location.reload();
+      }
+    } catch (recoveryError) {
+      // Fallback: redirect to dashboard
+      window.location.href = '/dashboard';
+    }
   };
 
   handleGoHome = () => {

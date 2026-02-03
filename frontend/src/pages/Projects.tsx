@@ -37,7 +37,9 @@ export function Projects() {
   // Sync with API projects on initial load only
   useEffect(() => {
     if (!hasSyncedWithAPI && apiProjects && apiProjects.length > 0) {
-      setProjects([...apiProjects]);
+      // Clean up State: Filter out any null/undefined values
+      const cleanProjects = apiProjects.filter(p => p != null && p.id != null);
+      setProjects(cleanProjects);
       setHasSyncedWithAPI(true);
     }
   }, [apiProjects, hasSyncedWithAPI]);
@@ -98,13 +100,23 @@ export function Projects() {
         }
         
         // Fix handleSave (Create Mode): Use setProjects([...projects, newProject])
+        // Clean up State: Ensure we don't add null or undefined values
+        if (!newProject || !newProject.id) {
+          console.error('Invalid project created:', newProject);
+          toast.error('Failed to create project: Invalid project data');
+          return;
+        }
+        
         setProjects(prev => {
+          // Filter out any null/undefined values first
+          const cleanPrev = prev.filter(p => p != null && p.id != null);
+          
           // Check if project already exists
-          if (prev.some(p => p.id === newProject.id)) {
-            return prev;
+          if (cleanPrev.some(p => p.id === newProject.id)) {
+            return cleanPrev;
           }
           // Add to top of list
-          return [newProject, ...prev];
+          return [newProject, ...cleanPrev];
         });
         
         toast.success('Project created successfully');
@@ -134,14 +146,27 @@ export function Projects() {
           }
         }
         
-        // Fix handleSave (Edit Mode): Use .map() to find and replace by ID
-        setProjects(prev => 
-          prev.map(p => p.id === updatedProject.id ? updatedProject : p)
-        );
+        // Validate the Updated Object: Ensure updatedProject has valid id
+        if (!updatedProject || !updatedProject.id) {
+          console.error('Invalid updated project:', updatedProject);
+          toast.error('Failed to update project: Invalid project data');
+          return;
+        }
+        
+        console.log('Saving project:', updatedProject);
+        
+        // Defensive Mapping: Add check to ensure project exists before accessing ID
+        setProjects(prev => {
+          // Filter out any null/undefined values first
+          const cleanPrev = prev.filter(p => p != null && p.id != null);
+          
+          // Defensive mapping: check p exists before accessing p.id
+          return cleanPrev.map(p => (p && p.id === updatedProject.id) ? updatedProject : p);
+        });
         
         toast.success('Project updated successfully');
         
-        // UI Cleanup: Set isEditing to false to return to clean list view
+        // UI Polish: Ensure isEditing is set to false and form is hidden
         setIsCreating(false);
         setEditingProject(null);
       }
@@ -163,8 +188,8 @@ export function Projects() {
     try {
       await deleteProject(projectId);
       
-      // Remove from state immediately
-      setProjects(prev => prev.filter(p => p.id !== projectId));
+      // Remove from state immediately with defensive filtering
+      setProjects(prev => prev.filter(p => p != null && p.id != null && p.id !== projectId));
       
       toast.success('Project deleted successfully');
     } catch (error: any) {
