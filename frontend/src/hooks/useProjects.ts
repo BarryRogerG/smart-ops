@@ -33,21 +33,55 @@ export function useProjects() {
   }, []);
 
   const createProject = useCallback(async (projectData: CreateProjectData) => {
-    await projectsService.create(projectData);
-    await loadProjects();
+    try {
+      const newProject = await projectsService.create(projectData);
+      // Optimistic update: add to local state immediately
+      setProjects(prev => {
+        const updated = [...prev, newProject];
+        return updated;
+      });
+      // Reload to ensure sync with backend
+      await loadProjects();
+      return newProject;
+    } catch (error) {
+      // On error, reload to get correct state
+      await loadProjects();
+      throw error;
+    }
   }, [loadProjects]);
 
   const updateProject = useCallback(async (projectId: string, projectData: UpdateProjectData) => {
-    const payload = { ...projectData };
-    if (!payload.description) delete payload.description;
-    
-    await projectsService.update(projectId, payload);
-    await loadProjects();
+    try {
+      const payload = { ...projectData };
+      if (!payload.description) delete payload.description;
+      
+      const updatedProject = await projectsService.update(projectId, payload);
+      // Optimistic update: update in local state immediately
+      setProjects(prev => 
+        prev.map(p => p.id === projectId ? updatedProject : p)
+      );
+      // Reload to ensure sync with backend
+      await loadProjects();
+      return updatedProject;
+    } catch (error) {
+      // On error, reload to get correct state
+      await loadProjects();
+      throw error;
+    }
   }, [loadProjects]);
 
   const deleteProject = useCallback(async (projectId: string) => {
-    await projectsService.delete(projectId);
-    await loadProjects();
+    try {
+      await projectsService.delete(projectId);
+      // Optimistic update: remove from local state immediately
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      // Reload to ensure sync with backend
+      await loadProjects();
+    } catch (error) {
+      // On error, reload to get correct state
+      await loadProjects();
+      throw error;
+    }
   }, [loadProjects]);
 
   return {

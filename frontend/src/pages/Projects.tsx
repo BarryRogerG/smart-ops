@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useProjects } from '../hooks/useProjects';
 import { Project } from '../types';
@@ -6,16 +8,34 @@ import { Layout } from '../components/Layout';
 import { ProjectTable } from '../components/ProjectTable';
 import { ProjectForm } from '../components/ProjectForm';
 import { MOCK_PROJECTS } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Projects() {
+  const { user } = useAuth();
   const { projects, isLoading, loadProjects, createProject, updateProject, deleteProject } = useProjects();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localProjects, setLocalProjects] = useState<Project[]>([]);
+
+  // Check if we're in showcase mode
+  const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
 
   useEffect(() => {
     loadProjects();
+    // Reset form state when component mounts (e.g., navigating from nav bar)
+    setIsCreating(false);
+    setEditingProject(null);
   }, [loadProjects]);
+
+  // Sync local state with projects from hook
+  useEffect(() => {
+    if (projects && projects.length > 0) {
+      setLocalProjects(projects);
+    } else if (isShowcaseMode) {
+      setLocalProjects(MOCK_PROJECTS);
+    }
+  }, [projects, isShowcaseMode]);
 
   const onCreateClick = () => {
     setIsCreating(true);
@@ -34,16 +54,36 @@ export function Projects() {
     setIsSubmitting(true);
     try {
       if (isCreating) {
-        await createProject({
+        const newProject = await createProject({
           name: formData.name,
           description: formData.description || undefined,
         });
+        
+        // In showcase mode, add to local state if not already added
+        if (isShowcaseMode && newProject) {
+          setLocalProjects(prev => {
+            // Check if project already exists
+            if (prev.some(p => p.id === newProject.id)) {
+              return prev;
+            }
+            return [...prev, newProject];
+          });
+        }
+        
         toast.success('Project created successfully');
       } else if (editingProject) {
-        await updateProject(editingProject.id, {
+        const updatedProject = await updateProject(editingProject.id, {
           name: formData.name,
           description: formData.description || undefined,
         });
+        
+        // In showcase mode, update local state
+        if (isShowcaseMode && updatedProject) {
+          setLocalProjects(prev =>
+            prev.map(p => p.id === updatedProject.id ? updatedProject : p)
+          );
+        }
+        
         toast.success('Project updated successfully');
       }
       setIsCreating(false);
@@ -65,6 +105,12 @@ export function Projects() {
 
     try {
       await deleteProject(projectId);
+      
+      // In showcase mode, remove from local state
+      if (isShowcaseMode) {
+        setLocalProjects(prev => prev.filter(p => p.id !== projectId));
+      }
+      
       toast.success('Project deleted successfully');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete project');
@@ -79,12 +125,29 @@ export function Projects() {
     );
   }
 
-  // Universal data guard with optional chaining and nullish coalescing
-  const safeProjects = (projects ?? []) || MOCK_PROJECTS;
+  // Use local projects in showcase mode, otherwise use projects from hook
+  const safeProjects = isShowcaseMode ? localProjects : (projects ?? []) || MOCK_PROJECTS;
 
   return (
     <Layout>
       <div className="px-4 py-6 sm:px-0">
+        {/* Back to List Button - shown when editing/creating */}
+        {(editingProject || isCreating) && (
+          <div className="mb-6">
+            <Link
+              to="/projects"
+              onClick={() => {
+                setIsCreating(false);
+                setEditingProject(null);
+              }}
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Projects
+            </Link>
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Project Management</h1>
           {!isCreating && !editingProject && (
@@ -107,11 +170,13 @@ export function Projects() {
           />
         )}
 
-        <ProjectTable
-          projects={safeProjects}
-          onEdit={onEditClick}
-          onDelete={onDeleteClick}
-        />
+        {!isCreating && !editingProject && (
+          <ProjectTable
+            projects={safeProjects}
+            onEdit={onEditClick}
+            onDelete={onDeleteClick}
+          />
+        )}
       </div>
     </Layout>
   );

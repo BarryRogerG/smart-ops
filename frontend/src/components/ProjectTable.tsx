@@ -50,18 +50,20 @@ export function ProjectTable({ projects, onEdit, onDelete }: ProjectTableProps) 
                 {project?.createdAt ? new Date(project.createdAt).toLocaleDateString() : '-'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <button
-                  onClick={() => project && onEdit(project)}
-                  className="text-indigo-600 hover:text-indigo-800 mr-4"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => project?.id && onDelete(project.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Delete
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => project && onEdit(project)}
+                    className="inline-flex items-center justify-center space-x-2 w-20 py-2 text-sm font-semibold tracking-tight text-white bg-indigo-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => project?.id && onDelete(project.id)}
+                    className="inline-flex items-center justify-center space-x-2 w-20 py-2 text-sm font-semibold tracking-tight text-white bg-rose-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-rose-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <span>Delete</span>
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
