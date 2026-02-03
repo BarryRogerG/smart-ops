@@ -546,8 +546,10 @@ export function WorkItemDetail() {
           </>
         )}
 
-        {activeTab === 'activity' && (
-          <ActivityHistory workItemId={displayItem.id} refreshTrigger={refreshActivity} />
+        {activeTab === 'activity' && displayItem && (
+          <div className="mt-6">
+            <ActivityHistory workItemId={displayItem.id} refreshTrigger={refreshActivity} />
+          </div>
         )}
       </div>
     </Layout>
