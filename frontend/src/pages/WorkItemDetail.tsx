@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Send, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -66,6 +66,12 @@ export function WorkItemDetail() {
   const [refreshActivity, setRefreshActivity] = useState(0);
   const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
   const [newComment, setNewComment] = useState('');
+
+  // Reset state when work item ID changes (user navigates to different item)
+  useEffect(() => {
+    setIsEditing(false);
+    setActiveTab('details');
+  }, [id]);
 
   // Check mock data if API didn't return item
   const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
@@ -269,6 +275,11 @@ export function WorkItemDetail() {
         <div className="mb-6">
           <Link
             to="/work-items"
+            onClick={() => {
+              // Reset all state when navigating back to list
+              setIsEditing(false);
+              setActiveTab('details');
+            }}
             className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -316,10 +327,9 @@ export function WorkItemDetail() {
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    // If on Activity tab, switch to Details tab first
-                    if (activeTab === 'activity') {
-                      setActiveTab('details');
-                    }
+                    // Always ensure we're on Details tab before editing
+                    // Set both states synchronously - React will batch the updates
+                    setActiveTab('details');
                     setIsEditing(true);
                   }}
                   className="inline-flex items-center justify-center space-x-2 w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-indigo-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
@@ -341,8 +351,8 @@ export function WorkItemDetail() {
           </div>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'details' && (
+        {/* Tab Content - Consolidated Conditional Rendering */}
+        {activeTab === 'details' ? (
           <>
             {!isEditing ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -550,10 +560,11 @@ export function WorkItemDetail() {
               />
             )}
           </>
-        )}
-
-        {activeTab === 'activity' && displayItem && (
-          <ActivityHistory workItemId={displayItem.id} workItem={displayItem} refreshTrigger={refreshActivity} />
+        ) : (
+          // Activity History View
+          displayItem && (
+            <ActivityHistory workItemId={displayItem.id} workItem={displayItem} refreshTrigger={refreshActivity} />
+          )
         )}
       </div>
     </Layout>
