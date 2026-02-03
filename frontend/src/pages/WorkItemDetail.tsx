@@ -315,7 +315,13 @@ export function WorkItemDetail() {
             {canEdit && (
               <div className="flex gap-3">
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    // If on Activity tab, switch to Details tab first
+                    if (activeTab === 'activity') {
+                      setActiveTab('details');
+                    }
+                    setIsEditing(true);
+                  }}
                   className="inline-flex items-center justify-center space-x-2 w-24 py-2.5 text-sm font-semibold tracking-tight text-white bg-indigo-600 bg-gradient-to-b from-white/10 to-transparent rounded-lg shadow-sm ring-1 ring-inset ring-white/10 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <Pencil className="h-4 w-4" />
@@ -547,9 +553,7 @@ export function WorkItemDetail() {
         )}
 
         {activeTab === 'activity' && displayItem && (
-          <div className="mt-6">
-            <ActivityHistory workItemId={displayItem.id} refreshTrigger={refreshActivity} />
-          </div>
+          <ActivityHistory workItemId={displayItem.id} workItem={displayItem} refreshTrigger={refreshActivity} />
         )}
       </div>
     </Layout>

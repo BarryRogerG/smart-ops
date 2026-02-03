@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityLog } from '../types';
+import { ActivityLog, WorkItem } from '../types';
 import { activityLogsService } from '../services/activityLogs';
 import { Clock, User, ArrowRight } from 'lucide-react';
 
 interface ActivityHistoryProps {
   workItemId: string;
+  workItem?: WorkItem;
   refreshTrigger?: number;
 }
 
@@ -163,7 +164,7 @@ export function ActivityHistory({ workItemId, refreshTrigger }: ActivityHistoryP
   if (isLoading) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
+        <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">Activity History</h2>
         <div className="text-center py-8 text-gray-500">Loading activity logs...</div>
       </div>
     );
@@ -172,7 +173,7 @@ export function ActivityHistory({ workItemId, refreshTrigger }: ActivityHistoryP
   if (error) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
+        <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">Activity History</h2>
         <div className="text-center py-8">
           <p className="text-gray-500 mb-2">{error}</p>
           <p className="text-sm text-gray-400">No history found for this work item.</p>
@@ -184,7 +185,7 @@ export function ActivityHistory({ workItemId, refreshTrigger }: ActivityHistoryP
   if (logs.length === 0) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
+        <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">Activity History</h2>
         <div className="text-center py-8 text-gray-500">No activity logs yet</div>
       </div>
     );
@@ -192,7 +193,7 @@ export function ActivityHistory({ workItemId, refreshTrigger }: ActivityHistoryP
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
+      <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">Activity History</h2>
       <div className="space-y-4">
         {logs.map((log) => (
           <div key={log.id} className="relative pl-8 pb-4 border-l-2 border-gray-200 last:border-l-0">
