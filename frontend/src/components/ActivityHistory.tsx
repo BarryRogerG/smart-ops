@@ -8,24 +8,96 @@ interface ActivityHistoryProps {
   refreshTrigger?: number;
 }
 
+// Mock activity logs for showcase mode
+const MOCK_ACTIVITY_LOGS: ActivityLog[] = [
+  {
+    id: 'log-1',
+    workItemId: '',
+    userId: 'guest',
+    action: 'created',
+    fieldName: null,
+    oldValue: null,
+    newValue: null,
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    user: {
+      id: 'guest',
+      name: 'Showcase Admin',
+      email: 'guest@smartops.com',
+      role: 'admin',
+    },
+  },
+  {
+    id: 'log-2',
+    workItemId: '',
+    userId: 'guest',
+    action: 'status_changed',
+    fieldName: 'status',
+    oldValue: 'open',
+    newValue: 'in_progress',
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    user: {
+      id: 'guest',
+      name: 'Showcase Admin',
+      email: 'guest@smartops.com',
+      role: 'admin',
+    },
+  },
+  {
+    id: 'log-3',
+    workItemId: '',
+    userId: 'guest',
+    action: 'updated',
+    fieldName: 'description',
+    oldValue: null,
+    newValue: 'Updated description',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    user: {
+      id: 'guest',
+      name: 'Showcase Admin',
+      email: 'guest@smartops.com',
+      role: 'admin',
+    },
+  },
+];
+
 export function ActivityHistory({ workItemId, refreshTrigger }: ActivityHistoryProps) {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadLogs = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const activityLogs = await activityLogsService.getByWorkItemId(workItemId);
-        setLogs(activityLogs);
+        setLogs(activityLogs || []);
       } catch (error) {
         console.error('Failed to load activity logs:', error);
+        // Check if we're in showcase mode (no real backend)
+        const isShowcaseMode = window.location.hostname.includes('onrender.com') || 
+                              !import.meta.env.VITE_API_URL ||
+                              import.meta.env.VITE_API_URL.includes('localhost');
+        
+        if (isShowcaseMode) {
+          // Use mock data in showcase mode
+          setLogs(MOCK_ACTIVITY_LOGS.map(log => ({ ...log, workItemId })));
+        } else {
+          // Set error state for graceful fallback
+          setError('Unable to load activity history. Please try again later.');
+          setLogs([]);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadLogs();
+    if (workItemId) {
+      loadLogs();
+    } else {
+      setIsLoading(false);
+      setError('No work item ID provided');
+    }
   }, [workItemId, refreshTrigger]);
 
   const formatAction = (action: string, fieldName?: string | null) => {
@@ -93,6 +165,18 @@ export function ActivityHistory({ workItemId, refreshTrigger }: ActivityHistoryP
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
         <div className="text-center py-8 text-gray-500">Loading activity logs...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
+        <div className="text-center py-8">
+          <p className="text-gray-500 mb-2">{error}</p>
+          <p className="text-sm text-gray-400">No history found for this work item.</p>
+        </div>
       </div>
     );
   }

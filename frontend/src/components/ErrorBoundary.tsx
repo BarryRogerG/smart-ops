@@ -53,8 +53,8 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo: null,
     });
     
-    // Force navigation to dashboard with full page reload to clear crashed state
-    window.location.href = '/dashboard';
+    // Reload the current page to clear crashed state while staying on the same URL
+    window.location.reload();
   };
 
   handleGoHome = () => {

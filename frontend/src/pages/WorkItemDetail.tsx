@@ -292,7 +292,15 @@ export function WorkItemDetail() {
                 Details
               </button>
               <button
-                onClick={() => setActiveTab('activity')}
+                onClick={() => {
+                  try {
+                    setActiveTab('activity');
+                  } catch (error) {
+                    console.error('Error switching to activity tab:', error);
+                    // Fallback: show error message instead of crashing
+                    toast.error('Unable to load activity history');
+                  }
+                }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === 'activity'
                     ? 'border-indigo-500 text-indigo-600'
