@@ -17,7 +17,8 @@ interface ProjectFormProps {
 }
 
 export function ProjectForm({ initialData, isCreating, isLoading = false, onSubmit, onCancel, onBackToList }: ProjectFormProps) {
-  // Initialize form data from initialData or empty values
+  // Form Data Binding: Initialize form data from initialData or empty values
+  // Ensure inputs are correctly tied to local state
   const [formData, setFormData] = useState(() => ({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -26,7 +27,7 @@ export function ProjectForm({ initialData, isCreating, isLoading = false, onSubm
   // Track the previous initialData ID to avoid unnecessary updates
   const prevInitialDataId = useRef<string | undefined>(initialData?.id);
 
-  // Update form data when initialData changes
+  // Form Data Binding: Update form data when initialData changes
   // Note: Using setState in effect is necessary here to sync form with prop changes
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -36,9 +37,10 @@ export function ProjectForm({ initialData, isCreating, isLoading = false, onSubm
     if (prevInitialDataId.current !== currentId) {
       prevInitialDataId.current = currentId;
       
-      if (initialData) {
+      if (initialData && initialData.id) {
+        // Form Data Binding: Ensure form is correctly bound to editingProject data
         setFormData({
-          name: initialData.name,
+          name: initialData.name || '',
           description: initialData.description || '',
         });
       } else if (isCreating) {

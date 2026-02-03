@@ -50,15 +50,15 @@ export function Projects() {
   };
 
   const onEditClick = (project: Project) => {
-    // Fix the Trigger: Ensure the full project object is passed and has valid ID
+    // Correct Edit Trigger: Ensure the entire project object is set into state
     if (!project || !project.id) {
       console.error('Invalid project passed to edit:', project);
       toast.error('Cannot edit: Invalid project data');
       return;
     }
     
-    // Set the full project object into editing state
-    setEditingProject(project);
+    // Set the entire project object (not just partial data) into editing state
+    setEditingProject({ ...project }); // Create a copy to avoid reference issues
     setIsCreating(false);
   };
 
@@ -133,10 +133,10 @@ export function Projects() {
         setIsCreating(false);
         setEditingProject(null);
       } else if (editingProject) {
-        // Fix the Trigger: Ensure editingProject has valid ID before proceeding
-        if (!editingProject || !editingProject.id) {
-          console.error('Invalid editing project:', editingProject);
-          toast.error('Cannot save: Invalid project data');
+        // Fix handleSaveProject Logic: Verify ID exists before saving
+        if (!editingProject?.id) {
+          console.error('Missing ID in editing project:', editingProject);
+          toast.error('Cannot save: Project ID is missing');
           setIsSubmitting(false);
           return;
         }
@@ -162,32 +162,40 @@ export function Projects() {
           }
         }
         
-        // Data Integrity Check: Validate at start - if updatedProject or updatedProject.id is missing, return early
-        if (!updatedProject || !updatedProject.id) {
-          console.warn('Invalid updated project received:', updatedProject);
-          toast.error('Failed to update project: Invalid project data received');
+        // Fix handleSaveProject Logic: Before saving, verify the ID exists
+        if (!updatedProject?.id) {
+          console.error('Missing ID in updated project:', updatedProject);
+          toast.error('Failed to update: Project ID is missing');
           setIsSubmitting(false);
           return;
         }
         
+        // Clear Validation Errors: Log success before state update
         console.log('Saving project:', updatedProject);
         
-        // Clean the Array: Filter out any 'ghost' items before mapping
-        // Defensive Mapping Guard: Rewrite state update to be null-safe
+        // Fix handleSaveProject Logic: Use setProjects to find and replace with spread operator
         setProjects(prev => {
           // Clean the Array: Remove null/undefined items first
           const cleanProjects = prev.filter(p => p !== null && p !== undefined && p.id != null);
           
-          // Defensive Mapping Guard: Null-safe mapping with explicit checks
+          // Use spread operator to merge existing project with updated data
           return cleanProjects.map(p => {
-            // Ensure p exists and has id before comparison
-            if (p && p.id && p.id === updatedProject.id) {
-              return updatedProject;
+            if (p && p.id === updatedProject.id) {
+              // Merge existing project properties with updated data
+              return { ...p, ...updatedProject };
             }
             return p;
           });
         });
         
+        // Activity Log Integration: Log project update (backend activity log would be added here)
+        console.log('Project updated:', {
+          projectId: updatedProject.id,
+          projectName: updatedProject.name,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // Clear Validation Errors: Success toast replaces any error messages
         toast.success('Project updated successfully');
         
         // UI Transition: Immediately set isEditing(false) and setEditingProject(null) to clear workspace
