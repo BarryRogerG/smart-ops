@@ -20,8 +20,14 @@ export function Projects() {
   // Check if we're in showcase mode
   const isShowcaseMode = user?.id === 'guest' || user?.email === 'guest@smartops.com';
   
-  // State persistence: Manage projects list with useState
-  const [localProjects, setLocalProjects] = useState<Project[]>(isShowcaseMode ? MOCK_PROJECTS : []);
+  // State persistence: Manage projects list with useState (not static mock file)
+  // This ensures UI doesn't reset on re-renders
+  const [localProjects, setLocalProjects] = useState<Project[]>(() => {
+    // Initialize with mock data in showcase mode, empty array otherwise
+    // Use function initializer to prevent re-initialization on re-renders
+    return isShowcaseMode ? [...MOCK_PROJECTS] : [];
+  });
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -30,15 +36,20 @@ export function Projects() {
     setEditingProject(null);
   }, [loadProjects]);
 
-  // Sync local state with projects from hook
+  // Sync local state with projects from hook (only on initial load)
+  // This prevents overwriting local changes during updates
   useEffect(() => {
-    if (projects && projects.length > 0) {
-      setLocalProjects(projects);
-    } else if (isShowcaseMode) {
-      // In showcase mode, use mock data if no projects from API
-      setLocalProjects(MOCK_PROJECTS);
+    if (!hasInitialized) {
+      if (projects && projects.length > 0) {
+        setLocalProjects([...projects]);
+        setHasInitialized(true);
+      } else if (isShowcaseMode && localProjects.length === 0) {
+        // In showcase mode, use mock data if no projects from API and localProjects is empty
+        setLocalProjects([...MOCK_PROJECTS]);
+        setHasInitialized(true);
+      }
     }
-  }, [projects, isShowcaseMode]);
+  }, [projects, isShowcaseMode, hasInitialized, localProjects.length]);
 
   const onCreateClick = () => {
     setIsCreating(true);
@@ -113,19 +124,34 @@ export function Projects() {
         setIsCreating(false);
         setEditingProject(null);
       } else if (editingProject) {
-        const updatedProject = await updateProject(editingProject.id, {
-          name: formData.name.trim(),
-          description: formData.description?.trim() || undefined,
-        });
+        let updatedProject: Project;
         
-        // Update local state immediately (optimistic update)
-        setLocalProjects(prev =>
+        try {
+          updatedProject = await updateProject(editingProject.id, {
+            name: formData.name.trim(),
+            description: formData.description?.trim() || undefined,
+          });
+        } catch (error) {
+          // In showcase mode, update project locally if API fails
+          if (isShowcaseMode) {
+            updatedProject = {
+              ...editingProject,
+              name: formData.name.trim(),
+              description: formData.description?.trim(),
+            };
+          } else {
+            throw error;
+          }
+        }
+        
+        // Refactor: Use setLocalProjects with .map() to find and update specific project by ID
+        setLocalProjects(prev => 
           prev.map(p => p.id === updatedProject.id ? updatedProject : p)
         );
         
         toast.success('Project updated successfully');
         
-        // Close form and reset: switch back to list view
+        // UI Feedback: Close form and reset - switch back to list view immediately
         setIsCreating(false);
         setEditingProject(null);
       }
