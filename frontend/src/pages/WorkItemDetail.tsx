@@ -244,7 +244,7 @@ export function WorkItemDetail() {
         <div className="mb-6">
           <Link
             to="/work-items"
-            className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to List
@@ -278,19 +278,19 @@ export function WorkItemDetail() {
               </button>
             </nav>
 
-            {/* Action Buttons - Standard Size */}
+            {/* Action Buttons - Solid Styles */}
             {canEdit && (
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition-colors"
+                  className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
                 >
                   Edit
                 </button>
                 {canDelete && (
                   <button
                     onClick={handleDelete}
-                    className="px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition-colors"
+                    className="px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
                   >
                     Delete
                   </button>
@@ -384,35 +384,35 @@ export function WorkItemDetail() {
                   </div>
                 </div>
 
-                {/* Sidebar Column - Professional Layout */}
-                <div className="space-y-4">
+                {/* Sidebar Column - Stretched & Anchored */}
+                <div className="space-y-4 flex flex-col h-full">
                   {/* Status Card */}
-                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Status</h3>
+                  <div className="bg-white shadow rounded-lg px-5 py-6 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-base font-semibold text-slate-500 mb-4">Status</h3>
                     <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${getStatusColor(displayItem.status)}`}>
                       {displayItem.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </span>
                   </div>
 
                   {/* Priority Card */}
-                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Priority</h3>
+                  <div className="bg-white shadow rounded-lg px-5 py-6 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-base font-semibold text-slate-500 mb-4">Priority</h3>
                     <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${getPriorityColor(displayItem.priority)}`}>
                       {displayItem.priority.charAt(0).toUpperCase() + displayItem.priority.slice(1)}
                     </span>
                   </div>
 
                   {/* Type Card */}
-                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Type</h3>
+                  <div className="bg-white shadow rounded-lg px-5 py-6 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-base font-semibold text-slate-500 mb-4">Type</h3>
                     <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
                       {displayItem.type.charAt(0).toUpperCase() + displayItem.type.slice(1)}
                     </span>
                   </div>
 
                   {/* Project Card */}
-                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Project</h3>
+                  <div className="bg-white shadow rounded-lg px-5 py-6 hover:shadow-md transition-shadow cursor-default">
+                    <h3 className="text-base font-semibold text-slate-500 mb-4">Project</h3>
                     {displayItem.project ? (
                       <div>
                         <p className="text-sm font-medium text-gray-900 mb-1">{displayItem.project.name}</p>
@@ -426,8 +426,8 @@ export function WorkItemDetail() {
                   </div>
 
                   {/* Assigned To Card - Enhanced with Avatar */}
-                  <div className="bg-white shadow rounded-lg p-5 hover:shadow-md transition-shadow cursor-default">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-3">Assigned To</h3>
+                  <div className="bg-white shadow rounded-lg px-5 py-6 hover:shadow-md transition-shadow cursor-default flex-1">
+                    <h3 className="text-base font-semibold text-slate-500 mb-4">Assigned To</h3>
                     {displayItem.assignedUser ? (
                       <div className="flex items-start gap-3">
                         {/* Avatar */}
