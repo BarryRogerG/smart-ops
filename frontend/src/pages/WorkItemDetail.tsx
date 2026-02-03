@@ -327,8 +327,9 @@ export function WorkItemDetail() {
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    // Always ensure we're on Details tab before editing
-                    // Set both states synchronously - React will batch the updates
+                    // Activity History is read-only - always switch to Details tab before editing
+                    // This ensures seamless flow: Edit button always leads to editable form
+                    // regardless of which tab the user started on
                     setActiveTab('details');
                     setIsEditing(true);
                   }}
