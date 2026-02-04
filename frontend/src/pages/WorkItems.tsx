@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { Search, X } from 'lucide-react';
@@ -19,6 +19,9 @@ export function WorkItems() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Add Search State: Create a searchQuery state to track the input text
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
   
   // Initialize filters from URL params
   const [filters, setFilters] = useState<{
@@ -72,11 +75,28 @@ export function WorkItems() {
     loadInitialData();
   }, [user?.role]);
 
-  // Load work items when filters change
+  // Implement Debouncing: Use a useEffect with a setTimeout (300ms) so that filtering logic only runs after user stops typing
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      // Update filters.search with debounced searchQuery
+      setFilters(prevFilters => {
+        if (searchQuery !== prevFilters.search) {
+          const newFilters = { ...prevFilters, search: searchQuery };
+          updateURL(newFilters);
+          return newFilters;
+        }
+        return prevFilters;
+      });
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, updateURL]); // Depend on searchQuery and updateURL
+
+  // Load work items when filters change (but not searchQuery to avoid double calls)
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters.status, filters.priority, filters.assignedTo, filters.projectId, filters.search]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -122,7 +142,7 @@ export function WorkItems() {
     updateURL(emptyFilters);
   };
 
-  const hasActiveFilters = filters.search || filters.status || filters.priority || filters.assignedTo || filters.projectId;
+  const hasActiveFilters = searchQuery || filters.status || filters.priority || filters.assignedTo || filters.projectId;
 
   const getStatusColor = (status: WorkItemStatus) => {
     switch (status) {
@@ -167,6 +187,32 @@ export function WorkItems() {
   const safeProjects = (projects ?? []) || MOCK_PROJECTS;
   const safeUsers = (users ?? []) || MOCK_USERS;
 
+  // Filtering Logic: Case-insensitive search in Title, ID, and Assigned To fields
+  // Use useMemo for performance - only recalculate when searchQuery or workItems change
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return safeWorkItems;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    
+    return safeWorkItems.filter((item) => {
+      // Search in Title
+      const titleMatch = item?.title?.toLowerCase().includes(query);
+      
+      // Search in ID
+      const idMatch = item?.id?.toLowerCase().includes(query);
+      
+      // Search in Assigned To (user name)
+      const assignedToMatch = item?.assignedUser?.name?.toLowerCase().includes(query);
+      
+      // Search in Description (bonus)
+      const descriptionMatch = item?.description?.toLowerCase().includes(query);
+      
+      return titleMatch || idMatch || assignedToMatch || descriptionMatch;
+    });
+  }, [searchQuery, safeWorkItems]);
+
   return (
     <Layout>
       <div className="px-4 py-6 sm:px-0">
@@ -188,21 +234,34 @@ export function WorkItems() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by title or description..."
-                value={filters.search}
+                placeholder="Search by title, ID, or assigned user..."
+                value={searchQuery}
                 onChange={(e) => {
-                  setFilters({ ...filters, search: e.target.value });
+                  // Prevent Default Behavior: Update local searchQuery state (not filters directly)
+                  e.preventDefault();
+                  setSearchQuery(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  // Prevent form submission if Enter is pressed
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                  }
                 }}
                 className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
-              {filters.search && (
+              {/* Senior UI Polish: Clear (X) icon appears only when there is text */}
+              {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => {
+                    // Clear search with one click
+                    setSearchQuery('');
                     const newFilters = { ...filters, search: '' };
                     setFilters(newFilters);
                     updateURL(newFilters);
                   }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Clear search"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -318,14 +377,35 @@ export function WorkItems() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {(safeWorkItems?.length ?? 0) === 0 ? (
+              {/* Empty State: Show professional message if no items match search */}
+              {filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                    No work items found
+                    {searchQuery.trim() ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <p className="text-sm font-medium text-gray-700">
+                          No results found for "{searchQuery}"
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery('');
+                            const newFilters = { ...filters, search: '' };
+                            setFilters(newFilters);
+                            updateURL(newFilters);
+                          }}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    ) : (
+                      'No work items found'
+                    )}
                   </td>
                 </tr>
               ) : (
-                (safeWorkItems || []).map((item) => (
+                filteredItems.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Link
