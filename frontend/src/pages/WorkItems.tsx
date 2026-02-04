@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
 import { Search, X } from 'lucide-react';
 
 import { workItemsService } from '../services/workItems';
@@ -12,8 +11,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { MOCK_WORK_ITEMS, MOCK_PROJECTS, MOCK_USERS } from '../data/mockData';
 
 export function WorkItems() {
+  
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  
   
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -21,27 +22,23 @@ export function WorkItems() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Add Search State: Create a searchQuery state to track the input text
-  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('search') || '');
+  const [searchQuery, setSearchQuery] = useState<string>(() => 
+  new URLSearchParams(window.location.search).get('search') || ''
+);
   
   // Initialize filters from URL params
-  const [filters, setFilters] = useState<{
-    search: string;
-    status: WorkItemStatus | '';
-    priority: WorkItemPriority | '';
-    assignedTo: string;
-    projectId: string;
-  }>({
-    search: searchParams.get('search') || '',
-    status: (searchParams.get('status') as WorkItemStatus) || '',
-    priority: (searchParams.get('priority') as WorkItemPriority) || '',
-    assignedTo: searchParams.get('assignedTo') || '',
-    projectId: searchParams.get('projectId') || '',
-  });
+  const [filters, setFilters] = useState(() => ({
+  search: searchParams.get('search') || '',
+  status: (searchParams.get('status') as WorkItemStatus) || '',
+  priority: (searchParams.get('priority') as WorkItemPriority) || '',
+  assignedTo: searchParams.get('assignedTo') || '',
+  projectId: searchParams.get('projectId') || '',
+}));
 
   // Update URL when filters change
   const updateURL = useCallback((newFilters: typeof filters) => {
     const params = new URLSearchParams();
-    
+    console.log('💎 Current Filter State:', JSON.stringify(filters));
     if (newFilters.search) params.set('search', newFilters.search);
     if (newFilters.status) params.set('status', newFilters.status);
     if (newFilters.priority) params.set('priority', newFilters.priority);
@@ -77,51 +74,51 @@ export function WorkItems() {
 
   // Implement Debouncing: Use a useEffect with a setTimeout (300ms) so that filtering logic only runs after user stops typing
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      // Update filters.search with debounced searchQuery
-      setFilters(prevFilters => {
-        if (searchQuery !== prevFilters.search) {
-          const newFilters = { ...prevFilters, search: searchQuery };
-          updateURL(newFilters);
-          return newFilters;
-        }
-        return prevFilters;
-      });
-    }, 300);
+  const debounceTimer = setTimeout(() => {
+    setFilters(prev => ({ ...prev, search: searchQuery }));
+  }, 300);
 
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, updateURL]); // Depend on searchQuery and updateURL
+  return () => clearTimeout(debounceTimer);
+}, [searchQuery]); // ONLY depend on the text change // Depend on searchQuery and updateURL
+
+// 1. This goes ABOVE the useEffect (outside of any other hooks)
+const lastSyncedFilters = useRef(JSON.stringify(filters));
+
+// // 2. This replaces your previous URL Syncer useEffect
+useEffect(() => {
+const currentFiltersStr = JSON.stringify(filters);
+  
+//   // Only call updateURL if the ACTUAL data has changed
+   if (lastSyncedFilters.current !== currentFiltersStr) {
+   updateURL(filters);
+   lastSyncedFilters.current = currentFiltersStr;
+  }
+}, [filters, updateURL]); // Stable: only cares when the final filter object changes
 
   // Load work items when filters change (but not searchQuery to avoid double calls)
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.priority, filters.assignedTo, filters.projectId, filters.search]);
+  }, [filters]);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const items = await workItemsService.getAll({
-        ...(filters.search && { search: filters.search }),
-        ...(filters.status && { status: filters.status }),
-        ...(filters.priority && { priority: filters.priority }),
-        ...(filters.assignedTo && { assignedTo: filters.assignedTo }),
-        ...(filters.projectId && { projectId: filters.projectId }),
-      });
-      // Ensure items is always an array, fallback to mock data
-      setWorkItems(Array.isArray(items) && items.length > 0 ? items : MOCK_WORK_ITEMS);
-    } catch (error: unknown) {
-      console.error('Failed to load work items:', error);
-      const errorMessage = (error as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error || 
-                          (error as { message?: string })?.message || 
-                          'Failed to load work items';
-      toast.error(errorMessage);
-      // Use mock data on error for showcase mode
-      setWorkItems(MOCK_WORK_ITEMS);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const loadData = useCallback(async () => {
+  setIsLoading(true);
+  try {
+    const items = await workItemsService.getAll({
+      ...(filters.search && { search: filters.search }),
+      ...(filters.status && { status: filters.status }),
+      ...(filters.priority && { priority: filters.priority }),
+      ...(filters.assignedTo && { assignedTo: filters.assignedTo }),
+      ...(filters.projectId && { projectId: filters.projectId }),
+    });
+    setWorkItems(Array.isArray(items) && items.length > 0 ? items : MOCK_WORK_ITEMS);
+  } catch (error) {
+    console.error('Failed to load work items:', error);
+    setWorkItems(MOCK_WORK_ITEMS);
+  } finally {
+    setIsLoading(false);
+  }
+}, [filters]); // loadData only changes when filters change
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -130,17 +127,17 @@ export function WorkItems() {
   };
 
 
-  const clearFilters = () => {
-    const emptyFilters: typeof filters = {
-      search: '',
-      status: '',
-      priority: '',
-      assignedTo: '',
-      projectId: '',
-    };
-    setFilters(emptyFilters);
-    updateURL(emptyFilters);
+ const clearFilters = () => {
+  const emptyFilters: typeof filters = {
+    search: '',
+    status: '' as WorkItemStatus,   // Add 'as WorkItemStatus'
+    priority: '' as WorkItemPriority, // Add 'as WorkItemPriority'
+    assignedTo: '',
+    projectId: '',
   };
+  setFilters(emptyFilters);
+  updateURL(emptyFilters);
+};
 
   const hasActiveFilters = searchQuery || filters.status || filters.priority || filters.assignedTo || filters.projectId;
 
@@ -174,44 +171,63 @@ export function WorkItems() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="p-8 text-center text-gray-500">Loading showcase data...</div>
-      </Layout>
-    );
-  }
+ 
 
   // Universal data guards with optional chaining and nullish coalescing
-  const safeWorkItems = (workItems ?? []) || MOCK_WORK_ITEMS;
   const safeProjects = (projects ?? []) || MOCK_PROJECTS;
   const safeUsers = (users ?? []) || MOCK_USERS;
 
   // Filtering Logic: Case-insensitive search in Title, ID, and Assigned To fields
   // Use useMemo for performance - only recalculate when searchQuery or workItems change
+  // Fix React Error #310: Ensure filteredItems always returns an array, never undefined/null/object
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return safeWorkItems;
+    // Ensure itemsToFilter is always an array - never undefined/null
+    const itemsToFilter = Array.isArray(workItems) && workItems.length > 0 
+      ? workItems 
+      : (Array.isArray(MOCK_WORK_ITEMS) ? MOCK_WORK_ITEMS : []);
+
+    // If no search query, return all items (but ensure it's an array)
+    if (!searchQuery || !searchQuery.trim()) {
+      return Array.isArray(itemsToFilter) ? itemsToFilter : [];
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    
-    return safeWorkItems.filter((item) => {
-      // Search in Title
-      const titleMatch = item?.title?.toLowerCase().includes(query);
+    const query = String(searchQuery).toLowerCase().trim();
+
+    // Ensure filter always returns an array - defensive filtering
+    const filtered = itemsToFilter.filter((item) => {
+      // Ensure item exists and is an object (not null/undefined)
+      if (!item || typeof item !== 'object') {
+        return false;
+      }
       
-      // Search in ID
-      const idMatch = item?.id?.toLowerCase().includes(query);
+      // Safe string checks - ensure all values are strings before calling toLowerCase
+      // This prevents React Error #310 (rendering objects where strings expected)
+      const title = String(item?.title || '').toLowerCase();
+      const id = String(item?.id || '').toLowerCase();
+      const assignedUserName = String(item?.assignedUser?.name || '').toLowerCase();
+      const description = String(item?.description || '').toLowerCase();
       
-      // Search in Assigned To (user name)
-      const assignedToMatch = item?.assignedUser?.name?.toLowerCase().includes(query);
-      
-      // Search in Description (bonus)
-      const descriptionMatch = item?.description?.toLowerCase().includes(query);
-      
-      return titleMatch || idMatch || assignedToMatch || descriptionMatch;
+      return (
+        title.includes(query) ||
+        id.includes(query) ||
+        assignedUserName.includes(query) ||
+        description.includes(query)
+      );
     });
-  }, [searchQuery, safeWorkItems]);
+
+    // Always return an array, never undefined/null/object
+    return Array.isArray(filtered) ? filtered : [];
+  }, [searchQuery, workItems]);
+
+if (isLoading) {
+  return (
+    <Layout>
+      <div className="p-8 text-center text-gray-500">
+        Loading showcase data...
+      </div>
+    </Layout>
+  );
+}
 
   return (
     <Layout>
